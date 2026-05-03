@@ -10,13 +10,13 @@ export default async function FamiljPage() {
 
   const supabase = await createClient();
   const { data: members } = await supabase
-    .from("family_members")
+    .from("sondag_family_members")
     .select("*")
     .eq("household_id", household.household_id)
     .order("created_at", { ascending: true });
 
   const { data: profile } = await supabase
-    .from("household_profile")
+    .from("sondag_household_profile")
     .select("*")
     .eq("household_id", household.household_id)
     .maybeSingle();

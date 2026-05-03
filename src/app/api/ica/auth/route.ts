@@ -18,7 +18,7 @@ export async function POST(req: Request) {
 
   // Verifiera att användaren tillhör hushållet
   const { data: member } = await supabase
-    .from("household_members")
+    .from("sondag_household_members")
     .select("household_id")
     .eq("household_id", household_id)
     .eq("user_id", user.id)
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   // Om password är tomt, behåll befintlig session
   if (!password) {
     await supabase
-      .from("ica_connections")
+      .from("sondag_ica_connections")
       .update({
         default_store_id,
         default_store_name,
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
 
   // Spara token. OBS: i prod ska detta krypteras via Supabase Vault
   // För nu sparas det som plaintext i en RLS-skyddad tabell.
-  await supabase.from("ica_connections").upsert(
+  await supabase.from("sondag_ica_connections").upsert(
     {
       household_id,
       ica_username: username,

@@ -14,7 +14,7 @@ export async function POST(req: Request) {
 
   // Hämta planen
   const { data: plan, error: planErr } = await supabase
-    .from("meal_plans")
+    .from("sondag_meal_plans")
     .select("*")
     .eq("id", plan_id)
     .single();
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
 
   // Befintliga entries (takeaway-markeringar)
   const { data: existingEntries } = await supabase
-    .from("meal_plan_entries")
+    .from("sondag_meal_plan_entries")
     .select("date, slot, takeaway, takeaway_type")
     .eq("meal_plan_id", plan_id);
 
@@ -32,26 +32,26 @@ export async function POST(req: Request) {
 
   // Hushållsprofil
   const { data: profile } = await supabase
-    .from("household_profile")
+    .from("sondag_household_profile")
     .select("*")
     .eq("household_id", plan.household_id)
     .maybeSingle();
 
   // Familjemedlemmar
   const { data: members } = await supabase
-    .from("family_members")
+    .from("sondag_family_members")
     .select("*")
     .eq("household_id", plan.household_id);
 
   // Pantry
   const { data: pantry } = await supabase
-    .from("pantry_items")
+    .from("sondag_pantry_items")
     .select("name, quantity, unit")
     .eq("household_id", plan.household_id);
 
   // Always-have
   const { data: alwaysHave } = await supabase
-    .from("always_have_items")
+    .from("sondag_always_have_items")
     .select("display_name")
     .eq("household_id", plan.household_id);
 
@@ -101,7 +101,7 @@ export async function POST(req: Request) {
   // Spara recept + entries
   for (const entry of week.entries) {
     if (entry.takeaway) {
-      await supabase.from("meal_plan_entries").upsert(
+      await supabase.from("sondag_meal_plan_entries").upsert(
         {
           meal_plan_id: plan_id,
           date: entry.date,
@@ -116,7 +116,7 @@ export async function POST(req: Request) {
     if (!entry.recipe) continue;
 
     const { data: recipe } = await supabase
-      .from("recipes")
+      .from("sondag_recipes")
       .insert({
         household_id: plan.household_id,
         title: entry.recipe.title,
@@ -136,7 +136,7 @@ export async function POST(req: Request) {
 
     if (!recipe) continue;
 
-    await supabase.from("recipe_ingredients").insert(
+    await supabase.from("sondag_recipe_ingredients").insert(
       entry.recipe.ingredients.map((ing, idx) => ({
         recipe_id: recipe.id,
         name: ing.name,
@@ -147,7 +147,7 @@ export async function POST(req: Request) {
       }))
     );
 
-    await supabase.from("meal_plan_entries").upsert(
+    await supabase.from("sondag_meal_plan_entries").upsert(
       {
         meal_plan_id: plan_id,
         date: entry.date,
@@ -172,21 +172,21 @@ async function rebuildShoppingList(
 ) {
   // Hämta alla recept-ingredienser för veckans entries
   const { data: entries } = await supabase
-    .from("meal_plan_entries")
+    .from("sondag_meal_plan_entries")
     .select("recipe_id, recipes(recipe_ingredients(name, quantity, unit, category))")
     .eq("meal_plan_id", planId)
     .not("recipe_id", "is", null);
 
   // Hämta always-have för filtrering
   const { data: alwaysHave } = await supabase
-    .from("always_have_items")
+    .from("sondag_always_have_items")
     .select("name_normalized")
     .eq("household_id", householdId);
   const alwaysHaveSet = new Set((alwaysHave ?? []).map((a) => a.name_normalized));
 
   // Hämta pantry för filtrering
   const { data: pantry } = await supabase
-    .from("pantry_items")
+    .from("sondag_pantry_items")
     .select("name")
     .eq("household_id", householdId);
   const pantrySet = new Set((pantry ?? []).map((p) => normalizeName(p.name)));
@@ -209,7 +209,7 @@ async function rebuildShoppingList(
 
   // Skapa eller uppdatera aktiv inköpslista
   let { data: list } = await supabase
-    .from("shopping_lists")
+    .from("sondag_shopping_lists")
     .select("id")
     .eq("household_id", householdId)
     .eq("status", "active")
@@ -219,14 +219,14 @@ async function rebuildShoppingList(
 
   if (!list) {
     const { data: newList } = await supabase
-      .from("shopping_lists")
+      .from("sondag_shopping_lists")
       .insert({ household_id: householdId, meal_plan_id: planId, name: "Veckohandling" })
       .select()
       .single();
     list = newList;
   } else {
     // Rensa items för att bygga om
-    await supabase.from("shopping_list_items").delete().eq("shopping_list_id", list.id);
+    await supabase.from("sondag_shopping_list_items").delete().eq("shopping_list_id", list.id);
   }
 
   if (!list) return;
@@ -246,6 +246,6 @@ async function rebuildShoppingList(
   });
 
   if (itemsToInsert.length) {
-    await supabase.from("shopping_list_items").insert(itemsToInsert);
+    await supabase.from("sondag_shopping_list_items").insert(itemsToInsert);
   }
 }

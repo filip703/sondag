@@ -20,7 +20,7 @@ export async function setEntryAction(args: SetEntryArgs) {
   const supabase = await createClient();
 
   const { error } = await supabase
-    .from("meal_plan_entries")
+    .from("sondag_meal_plan_entries")
     .upsert(
       {
         meal_plan_id: args.plan_id,
@@ -44,7 +44,7 @@ export async function setEntryAction(args: SetEntryArgs) {
 export async function clearEntryAction(plan_id: string, date: string, slot: string) {
   const supabase = await createClient();
   await supabase
-    .from("meal_plan_entries")
+    .from("sondag_meal_plan_entries")
     .delete()
     .match({ meal_plan_id: plan_id, date, slot });
   revalidatePath("/vecka");

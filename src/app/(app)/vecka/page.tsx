@@ -25,7 +25,7 @@ export default async function VeckaPage({
 
   // Hämta eller skapa veckomeny
   let { data: plan } = await supabase
-    .from("meal_plans")
+    .from("sondag_meal_plans")
     .select("*")
     .eq("household_id", household.household_id)
     .eq("week_start", weekStartIso)
@@ -33,7 +33,7 @@ export default async function VeckaPage({
 
   if (!plan) {
     const { data: newPlan } = await supabase
-      .from("meal_plans")
+      .from("sondag_meal_plans")
       .insert({ household_id: household.household_id, week_start: weekStartIso })
       .select()
       .single();
@@ -41,7 +41,7 @@ export default async function VeckaPage({
   }
 
   const { data: entries } = await supabase
-    .from("meal_plan_entries")
+    .from("sondag_meal_plan_entries")
     .select("*, recipes(id, title, image_url, prep_minutes, cook_minutes)")
     .eq("meal_plan_id", plan!.id);
 

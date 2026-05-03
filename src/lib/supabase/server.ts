@@ -1,46 +1,29 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { HOUSEHOLD_ID } from "@/lib/auth-pin";
 
+// PIN-mode: en enkel klient med anon-key. RLS är öppen för sondag-schemat
+// och PIN-gaten i middleware skyddar appen.
 export async function createClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
+  return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      db: { schema: "sondag" },
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // setAll i Server Component — kan ignoreras om middleware refreshar sessions
-          }
-        },
-      },
+      auth: { persistSession: false, autoRefreshToken: false },
     }
   );
 }
 
-export async function getCurrentUser() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
-}
-
 export async function getCurrentHousehold() {
   const supabase = await createClient();
-  const user = await getCurrentUser();
-  if (!user) return null;
   const { data } = await supabase
-    .from("household_members")
-    .select("household_id, households(id, name)")
-    .eq("user_id", user.id)
-    .limit(1)
-    .single();
-  return data;
+    .from("sondag_households")
+    .select("id, name")
+    .eq("id", HOUSEHOLD_ID)
+    .maybeSingle();
+  return data ? { household_id: data.id, households: { id: data.id, name: data.name } } : null;
+}
+
+export async function getCurrentUser() {
+  // PIN-mode har ingen riktig user, vi returnerar en proxy.
+  return { id: HOUSEHOLD_ID, email: "filiphector@gmail.com" };
 }

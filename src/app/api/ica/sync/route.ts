@@ -13,14 +13,14 @@ export async function POST(req: Request) {
   const supabase = await createClient();
 
   const { data: list } = await supabase
-    .from("shopping_lists")
+    .from("sondag_shopping_lists")
     .select("*")
     .eq("id", list_id)
     .single();
   if (!list) return NextResponse.json({ error: "Lista saknas" }, { status: 404 });
 
   const { data: ica } = await supabase
-    .from("ica_connections")
+    .from("sondag_ica_connections")
     .select("*")
     .eq("household_id", list.household_id)
     .maybeSingle();
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   }
 
   const { data: items } = await supabase
-    .from("shopping_list_items")
+    .from("sondag_shopping_list_items")
     .select("id, name, quantity, unit, ica_ean, ica_article_id, checked, have_at_home")
     .eq("shopping_list_id", list_id);
 
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
     });
 
     await supabase
-      .from("shopping_lists")
+      .from("sondag_shopping_lists")
       .update({
         status: "synced_to_ica",
         ica_list_id: result.OfflineId,
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
       .eq("id", list_id);
 
     await supabase
-      .from("ica_connections")
+      .from("sondag_ica_connections")
       .update({ last_synced_at: new Date().toISOString() })
       .eq("household_id", list.household_id);
 

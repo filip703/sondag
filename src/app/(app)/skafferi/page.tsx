@@ -10,14 +10,14 @@ export default async function SkafferiPage() {
 
   const supabase = await createClient();
   const { data: items } = await supabase
-    .from("pantry_items")
+    .from("sondag_pantry_items")
     .select("*")
     .eq("household_id", household.household_id)
     .order("category", { ascending: true })
     .order("name", { ascending: true });
 
   const { data: alwaysHave } = await supabase
-    .from("always_have_items")
+    .from("sondag_always_have_items")
     .select("*")
     .eq("household_id", household.household_id)
     .order("display_name", { ascending: true });

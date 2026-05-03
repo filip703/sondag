@@ -14,14 +14,14 @@ interface AddArgs {
 
 export async function addPantryItemAction(args: AddArgs) {
   const supabase = await createClient();
-  const { error } = await supabase.from("pantry_items").insert(args);
+  const { error } = await supabase.from("sondag_pantry_items").insert(args);
   if (error) throw new Error(error.message);
   revalidatePath("/skafferi");
 }
 
 export async function removePantryItemAction(id: string) {
   const supabase = await createClient();
-  await supabase.from("pantry_items").delete().eq("id", id);
+  await supabase.from("sondag_pantry_items").delete().eq("id", id);
   revalidatePath("/skafferi");
 }
 
@@ -32,7 +32,7 @@ export async function rememberAlwaysHaveAction(args: {
   ica_ean: string | null;
 }) {
   const supabase = await createClient();
-  await supabase.from("always_have_items").upsert(
+  await supabase.from("sondag_always_have_items").upsert(
     {
       household_id: args.household_id,
       name_normalized: normalizeName(args.name),
@@ -48,6 +48,6 @@ export async function rememberAlwaysHaveAction(args: {
 
 export async function removeAlwaysHaveAction(id: string) {
   const supabase = await createClient();
-  await supabase.from("always_have_items").delete().eq("id", id);
+  await supabase.from("sondag_always_have_items").delete().eq("id", id);
   revalidatePath("/skafferi");
 }

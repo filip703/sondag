@@ -14,7 +14,7 @@ export default async function InkopPage() {
 
   // Hämta veckans plan
   const { data: plan } = await supabase
-    .from("meal_plans")
+    .from("sondag_meal_plans")
     .select("id")
     .eq("household_id", household.household_id)
     .eq("week_start", weekStartIso)
@@ -22,7 +22,7 @@ export default async function InkopPage() {
 
   // Senaste aktiva eller skapa ny
   let { data: list } = await supabase
-    .from("shopping_lists")
+    .from("sondag_shopping_lists")
     .select("*")
     .eq("household_id", household.household_id)
     .in("status", ["active", "synced_to_ica"])
@@ -32,7 +32,7 @@ export default async function InkopPage() {
 
   if (!list) {
     const { data: newList } = await supabase
-      .from("shopping_lists")
+      .from("sondag_shopping_lists")
       .insert({
         household_id: household.household_id,
         meal_plan_id: plan?.id ?? null,
@@ -44,14 +44,14 @@ export default async function InkopPage() {
   }
 
   const { data: items } = await supabase
-    .from("shopping_list_items")
+    .from("sondag_shopping_list_items")
     .select("*")
     .eq("shopping_list_id", list!.id)
     .order("category", { ascending: true })
     .order("order_index", { ascending: true });
 
   const { data: ica } = await supabase
-    .from("ica_connections")
+    .from("sondag_ica_connections")
     .select("ica_username, default_store_name, last_synced_at")
     .eq("household_id", household.household_id)
     .maybeSingle();

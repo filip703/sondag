@@ -6,8 +6,8 @@ export default function LandingPage() {
       <header className="mx-auto max-w-6xl pt-10 pb-20 flex items-center justify-between">
         <span className="font-display text-2xl">Söndag</span>
         <nav className="flex items-center gap-6 text-sm">
-          <Link href="/login" className="hover:text-rust">Logga in</Link>
-          <Link href="/login" className="btn btn-primary">Kom igång</Link>
+          <Link href="/pin" className="hover:text-rust">Skriv in kod</Link>
+          <Link href="/pin" className="btn btn-primary">Kom igång</Link>
         </nav>
       </header>
 
@@ -22,7 +22,7 @@ export default function LandingPage() {
           Inköpslista som synkar direkt till handscannern på ICA Maxi Sollentuna.
         </p>
         <div className="mt-10 flex items-center gap-4">
-          <Link href="/login" className="btn btn-primary">Bygg din första vecka</Link>
+          <Link href="/pin" className="btn btn-primary">Bygg din första vecka</Link>
           <Link href="#hur" className="btn btn-ghost">Så funkar det</Link>
         </div>
       </section>

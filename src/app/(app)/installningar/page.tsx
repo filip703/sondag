@@ -27,14 +27,14 @@ export default async function InstallningarPage() {
 
   const supabase = await createClient();
   const { data: prefs } = await supabase
-    .from("diet_preferences")
+    .from("sondag_diet_preferences")
     .select("*")
     .eq("household_id", household.household_id)
     .eq("user_id", user.id)
     .maybeSingle();
 
   const { data: ica } = await supabase
-    .from("ica_connections")
+    .from("sondag_ica_connections")
     .select("*")
     .eq("household_id", household.household_id)
     .maybeSingle();

@@ -6,14 +6,14 @@ import { normalizeName } from "@/lib/utils";
 
 export async function toggleCheckedAction(itemId: string, checked: boolean) {
   const supabase = await createClient();
-  await supabase.from("shopping_list_items").update({ checked }).eq("id", itemId);
+  await supabase.from("sondag_shopping_list_items").update({ checked }).eq("id", itemId);
   revalidatePath("/inkop");
 }
 
 export async function toggleHaveAtHomeAction(itemId: string, have: boolean) {
   const supabase = await createClient();
   await supabase
-    .from("shopping_list_items")
+    .from("sondag_shopping_list_items")
     .update({ have_at_home: have })
     .eq("id", itemId);
   revalidatePath("/inkop");
@@ -24,7 +24,7 @@ export async function rememberAlwaysHaveItemAction(itemId: string, remember: boo
 
   // Hämta itemet
   const { data: item } = await supabase
-    .from("shopping_list_items")
+    .from("sondag_shopping_list_items")
     .select("*, shopping_lists!inner(household_id)")
     .eq("id", itemId)
     .single();
@@ -32,13 +32,13 @@ export async function rememberAlwaysHaveItemAction(itemId: string, remember: boo
   if (!item) return;
 
   await supabase
-    .from("shopping_list_items")
+    .from("sondag_shopping_list_items")
     .update({ remember_have_at_home: remember, have_at_home: remember || item.have_at_home })
     .eq("id", itemId);
 
   if (remember) {
     const householdId = (item.shopping_lists as { household_id: string }).household_id;
-    await supabase.from("always_have_items").upsert(
+    await supabase.from("sondag_always_have_items").upsert(
       {
         household_id: householdId,
         name_normalized: normalizeName(item.name),
@@ -51,7 +51,7 @@ export async function rememberAlwaysHaveItemAction(itemId: string, remember: boo
   } else {
     const householdId = (item.shopping_lists as { household_id: string }).household_id;
     await supabase
-      .from("always_have_items")
+      .from("sondag_always_have_items")
       .delete()
       .eq("household_id", householdId)
       .eq("name_normalized", normalizeName(item.name));
@@ -69,7 +69,7 @@ export async function addShoppingItemAction(args: {
   category?: string;
 }) {
   const supabase = await createClient();
-  await supabase.from("shopping_list_items").insert({
+  await supabase.from("sondag_shopping_list_items").insert({
     shopping_list_id: args.list_id,
     name: args.name,
     quantity: args.quantity ?? null,
@@ -81,6 +81,6 @@ export async function addShoppingItemAction(args: {
 
 export async function removeShoppingItemAction(itemId: string) {
   const supabase = await createClient();
-  await supabase.from("shopping_list_items").delete().eq("id", itemId);
+  await supabase.from("sondag_shopping_list_items").delete().eq("id", itemId);
   revalidatePath("/inkop");
 }
