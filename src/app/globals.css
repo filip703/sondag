@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+@theme {
+  /* Bas — Filip Hector Brand Standard */
+  --color-cream: #f4ecdf;
+  --color-cream-light: #faf5ec;
+  --color-cream-accent: #e8dcc4;
+  --color-espresso: #2a2520;
+  --color-ink-soft: #4a4138;
+
+  /* Accenter */
+  --color-rust: #b5562b;
+  --color-petrol: #2e5c6e;
+  --color-camel: #c4a678;
+  --color-olive: #6b6b3a;
+  --color-forest: #3a4a35;
+  --color-burgundy: #6e2a2a;
+
+  /* Typografi */
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Manrope", "Helvetica Neue", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", monospace;
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  html {
+    background: var(--color-cream);
+    color: var(--color-espresso);
+    font-family: var(--font-body);
+    font-feature-settings: "ss01", "ss02";
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background:
+      radial-gradient(at 30% 10%, rgba(181, 86, 43, 0.04), transparent 40%),
+      radial-gradient(at 80% 80%, rgba(46, 92, 110, 0.04), transparent 40%),
+      var(--color-cream);
+    min-height: 100dvh;
+  }
+  ::selection {
+    background: var(--color-rust);
+    color: var(--color-cream);
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+  h3 { font-style: italic; font-weight: 400; }
+  hr { border: 0; border-top: 1px solid rgba(42, 37, 32, 0.15); }
+  button { cursor: pointer; }
+}
+
+@layer components {
+  .eyebrow {
+    font-family: var(--font-body);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.7rem;
+    color: var(--color-ink-soft);
+  }
+  .card {
+    background: var(--color-cream-light);
+    border: 1px solid rgba(42, 37, 32, 0.1);
+    border-radius: 4px;
+  }
+  .divider {
+    border-top: 1px solid var(--color-espresso);
+    border-bottom: 1px solid var(--color-espresso);
+    padding: 0.6rem 0;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.1rem;
+    border-radius: 2px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all 150ms ease;
+    border: 1px solid transparent;
+  }
+  .btn-primary {
+    background: var(--color-espresso);
+    color: var(--color-cream);
+  }
+  .btn-primary:hover { background: var(--color-rust); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-espresso);
+    border-color: rgba(42, 37, 32, 0.15);
+  }
+  .btn-ghost:hover { border-color: var(--color-espresso); }
+}
