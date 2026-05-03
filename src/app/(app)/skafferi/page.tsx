@@ -33,8 +33,7 @@ export default async function SkafferiPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <ScanButton target="pantry" label="Scanna nu hemma" />
-          <ScanButton target="always_have" label="Scanna alltid-hemma" />
+          <ScanButton />
           <CookWithPantryButton />
         </div>
       </div>
