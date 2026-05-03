@@ -47,6 +47,9 @@ interface Recipe {
   instructions: string[];
   source_url: string | null;
   ai_generated: boolean;
+  rating?: number | null;
+  rated_by?: string | null;
+  rejected?: boolean;
   ingredients: Ingredient[];
 }
 
@@ -77,7 +80,7 @@ export function WeekGrid({
 }) {
   const router = useRouter();
   const [absenceFor, setAbsenceFor] = useState<{ date: string; slot: Slot } | null>(null);
-  const [showRecipe, setShowRecipe] = useState<Recipe | null>(null);
+  const [showRecipe, setShowRecipe] = useState<{ recipe: Recipe; date: string; slot: Slot } | null>(null);
   const [isPending, startTransition] = useTransition();
   const [quickAdd, setQuickAdd] = useState<{ date: string; slot: Slot } | null>(null);
 
@@ -128,17 +131,24 @@ export function WeekGrid({
                     </p>
                   ) : entry?.recipes ? (
                     <button
-                      onClick={() => entry.recipes && setShowRecipe(entry.recipes)}
+                      onClick={() => entry.recipes && setShowRecipe({ recipe: entry.recipes, date: formatDateISO(day), slot })}
                       className="text-left w-full group"
                     >
                       <p className="text-sm font-medium leading-snug group-hover:text-rust transition">
                         {entry.recipes.title}
                       </p>
-                      {(entry.recipes.prep_minutes || entry.recipes.cook_minutes) && (
-                        <p className="text-[10px] text-ink-soft mt-0.5 tabular-nums">
-                          {(entry.recipes.prep_minutes ?? 0) + (entry.recipes.cook_minutes ?? 0)} min
-                        </p>
-                      )}
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {(entry.recipes.prep_minutes || entry.recipes.cook_minutes) && (
+                          <span className="text-[10px] text-ink-soft tabular-nums">
+                            {(entry.recipes.prep_minutes ?? 0) + (entry.recipes.cook_minutes ?? 0)} min
+                          </span>
+                        )}
+                        {entry.recipes.rating ? (
+                          <span className="text-[10px] text-rust tabular-nums flex items-center gap-0.5">
+                            {"★".repeat(entry.recipes.rating)}
+                          </span>
+                        ) : null}
+                      </div>
                     </button>
                   ) : entry?.custom_title ? (
                     <p className="text-sm leading-snug">{entry.custom_title}</p>
@@ -213,7 +223,11 @@ export function WeekGrid({
       )}
 
       {showRecipe && (
-        <RecipeDialog recipe={showRecipe} onClose={() => setShowRecipe(null)} />
+        <RecipeDialog
+          recipe={showRecipe.recipe}
+          onClose={() => setShowRecipe(null)}
+          planContext={{ plan_id: planId, date: showRecipe.date, slot: showRecipe.slot }}
+        />
       )}
 
       {absenceFor && (

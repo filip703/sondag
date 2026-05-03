@@ -75,7 +75,8 @@ export interface GenerateMenuInput {
   pantry: { name: string; quantity: number | null; unit: string | null }[];
   alwaysHave: string[];
   takeawayDays: { date: string; slot: string; type?: string }[];
-  recentMeals?: { date: string; title: string; cuisine?: string | null }[];
+  recentMeals?: { date: string; title: string; cuisine?: string | null; rating?: number | null }[];
+  rejectedTitles?: string[];
   absences?: { date: string; slot: string; absent: string[] }[];
 }
 
@@ -218,10 +219,16 @@ SENASTE 4 VECKORNA — UNDVIK UPPREPNING
 ═══════════════════════════════════════
 
 ${input.recentMeals && input.recentMeals.length
-  ? input.recentMeals.map((m) => `- ${m.date}: ${m.title}${m.cuisine ? ` (${m.cuisine})` : ""}`).join("\n")
+  ? input.recentMeals.map((m) => `- ${m.date}: ${m.title}${m.cuisine ? ` (${m.cuisine})` : ""}${m.rating ? ` ${"★".repeat(m.rating)}` : ""}`).join("\n")
   : "(ingen historik än)"}
 
-Återanvänd inte exakta recept från ovan. Variera proteinkällor och kök så det inte blir samma som senast.
+Återanvänd inte exakta recept från ovan (om de inte fick 5★). Variera proteinkällor och kök så det inte blir samma som senast.
+
+PRIORITERA RIKT: hög-betygsatta rätter (4-5★) ger en signal om vad familjen älskar — gör mer av den stilen.
+
+${input.rejectedTitles && input.rejectedTitles.length
+  ? `FÖRKASTADE RÄTTER (planera ALDRIG dessa igen):\n${input.rejectedTitles.map((t) => `- ${t}`).join("\n")}`
+  : ""}
 
 ═══════════════════════════════════════
 FRÅNVARO PER MÅLTID

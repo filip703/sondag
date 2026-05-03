@@ -80,18 +80,26 @@ export async function POST(req: Request) {
   const { data: recentRecipes } = recentRecipeIds.length
     ? await supabase
         .from("sondag_recipes")
-        .select("id, title, cuisine")
+        .select("id, title, cuisine, rating")
         .in("id", recentRecipeIds)
-    : { data: [] as Array<{ id: string; title: string; cuisine: string | null }> };
+    : { data: [] as Array<{ id: string; title: string; cuisine: string | null; rating: number | null }> };
 
   const recipeMap = new Map((recentRecipes ?? []).map((r) => [r.id, r]));
   const recentMeals = (recentEntries ?? [])
     .map((e) => {
       const r = e.recipe_id ? recipeMap.get(e.recipe_id) : null;
-      return r ? { date: e.date, title: r.title, cuisine: r.cuisine } : null;
+      return r ? { date: e.date, title: r.title, cuisine: r.cuisine, rating: r.rating } : null;
     })
-    .filter((x): x is { date: string; title: string; cuisine: string | null } => !!x)
+    .filter((x): x is { date: string; title: string; cuisine: string | null; rating: number | null } => !!x)
     .slice(0, 30);
+
+  // Förkastade recept som AI:n aldrig får planera igen
+  const { data: rejected } = await supabase
+    .from("sondag_recipes")
+    .select("title")
+    .eq("household_id", plan.household_id)
+    .eq("rejected", true);
+  const rejectedTitles = (rejected ?? []).map((r) => r.title);
 
   let week;
   try {
@@ -128,6 +136,7 @@ export async function POST(req: Request) {
       alwaysHave: (alwaysHave ?? []).map((a) => a.display_name),
       takeawayDays,
       recentMeals,
+      rejectedTitles,
       absences,
     });
   } catch (e) {

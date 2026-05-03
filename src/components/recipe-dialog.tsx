@@ -1,6 +1,10 @@
 "use client";
 
-import { X, Clock, Users, ChefHat, Link2, Sparkles } from "lucide-react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { X, Clock, Users, ChefHat, Link2, Sparkles, Star, Trash2, Ban } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { rateRecipeAction, deleteRecipeFromPlanAction } from "@/app/actions/recipes";
 
 interface Ingredient {
   recipe_id: string;
@@ -25,10 +29,50 @@ interface Recipe {
   instructions: string[];
   source_url: string | null;
   ai_generated: boolean;
+  rating?: number | null;
+  rated_by?: string | null;
+  rejected?: boolean;
   ingredients: Ingredient[];
 }
 
-export function RecipeDialog({ recipe, onClose }: { recipe: Recipe; onClose: () => void }) {
+export function RecipeDialog({
+  recipe,
+  onClose,
+  planContext,
+}: {
+  recipe: Recipe;
+  onClose: () => void;
+  planContext?: { plan_id: string; date: string; slot: string };
+}) {
+  const [rating, setRating] = useState(recipe.rating ?? 0);
+  const [hover, setHover] = useState<number | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const [showDelete, setShowDelete] = useState(false);
+  const router = useRouter();
+
+  function rate(value: number) {
+    setRating(value);
+    startTransition(async () => {
+      await rateRecipeAction(recipe.id, value);
+      router.refresh();
+    });
+  }
+
+  function deleteFromPlan(reject: boolean) {
+    if (!planContext) return;
+    startTransition(async () => {
+      await deleteRecipeFromPlanAction({
+        plan_id: planContext.plan_id,
+        date: planContext.date,
+        slot: planContext.slot,
+        reject_recipe: reject,
+        recipe_id: recipe.id,
+      });
+      onClose();
+      router.refresh();
+    });
+  }
+
   const totalMinutes = (recipe.prep_minutes ?? 0) + (recipe.cook_minutes ?? 0);
 
   // Gruppera ingredienser per kategori
@@ -111,6 +155,87 @@ export function RecipeDialog({ recipe, onClose }: { recipe: Recipe; onClose: () 
             ))}
           </div>
         )}
+
+        {/* Rating + delete */}
+        <div className="px-6 py-4 border-b border-espresso/15 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <p className="eyebrow shrink-0">Betyg</p>
+            <div
+              className="flex items-center gap-0.5"
+              onMouseLeave={() => setHover(null)}
+            >
+              {[1, 2, 3, 4, 5].map((v) => {
+                const filled = (hover ?? rating) >= v;
+                return (
+                  <button
+                    key={v}
+                    onClick={() => rate(v)}
+                    onMouseEnter={() => setHover(v)}
+                    disabled={isPending}
+                    className="p-1 transition"
+                    title={`${v} stjärnor`}
+                  >
+                    <Star
+                      size={20}
+                      className={cn(
+                        "transition",
+                        filled ? "fill-rust text-rust" : "text-ink-soft/30"
+                      )}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+            {recipe.rated_by && rating > 0 && (
+              <span className="text-xs text-ink-soft">
+                — {recipe.rated_by}
+              </span>
+            )}
+            {rating > 0 && rating <= 2 && (
+              <span className="text-xs text-burgundy ml-2">
+                Plockas inte igen
+              </span>
+            )}
+          </div>
+
+          {planContext && (
+            <div className="flex items-center gap-2">
+              {!showDelete ? (
+                <button
+                  onClick={() => setShowDelete(true)}
+                  className="text-xs text-ink-soft hover:text-burgundy flex items-center gap-1"
+                >
+                  <Trash2 size={12} /> Ta bort
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => deleteFromPlan(false)}
+                    disabled={isPending}
+                    className="btn btn-ghost text-xs"
+                    title="Ta bort från veckan men behåll i biblioteket"
+                  >
+                    <Trash2 size={11} /> Bara här
+                  </button>
+                  <button
+                    onClick={() => deleteFromPlan(true)}
+                    disabled={isPending}
+                    className="btn btn-primary text-xs"
+                    title="Förkasta — AI:n föreslår aldrig denna igen"
+                  >
+                    <Ban size={11} /> Förkasta
+                  </button>
+                  <button
+                    onClick={() => setShowDelete(false)}
+                    className="text-xs text-ink-soft"
+                  >
+                    Avbryt
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Ingredienser */}
         <section className="px-6 py-5">

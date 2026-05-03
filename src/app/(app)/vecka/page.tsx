@@ -57,9 +57,9 @@ export default async function VeckaPage({
     recipeIds.length
       ? supabase
           .from("sondag_recipes")
-          .select("id, title, description, image_url, prep_minutes, cook_minutes, servings, cuisine, difficulty, tags, instructions, source_url, ai_generated")
+          .select("id, title, description, image_url, prep_minutes, cook_minutes, servings, cuisine, difficulty, tags, instructions, source_url, ai_generated, rating, rated_by, rejected")
           .in("id", recipeIds)
-      : Promise.resolve({ data: [] as Array<{ id: string; title: string; description: string | null; image_url: string | null; prep_minutes: number | null; cook_minutes: number | null; servings: number; cuisine: string | null; difficulty: string | null; tags: string[]; instructions: string[]; source_url: string | null; ai_generated: boolean }> }),
+      : Promise.resolve({ data: [] as Array<{ id: string; title: string; description: string | null; image_url: string | null; prep_minutes: number | null; cook_minutes: number | null; servings: number; cuisine: string | null; difficulty: string | null; tags: string[]; instructions: string[]; source_url: string | null; ai_generated: boolean; rating: number | null; rated_by: string | null; rejected: boolean }> }),
     supabase
       .from("sondag_family_members")
       .select("id, name, avatar_color")
