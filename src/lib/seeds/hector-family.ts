@@ -1,0 +1,155 @@
+// Pre-seed: Familjen Hector — använd vid första hushålls-skapandet
+// Triggas automatiskt om e-post = filiphector@gmail.com, eller manuellt via "Använd Hector-preset".
+
+export const HECTOR_HOUSEHOLD_PROFILE = {
+  cooking_style: "Enkel vardagsmat med håll-käften-gott-feeling. Snabbt, enkelt, mycket smak.",
+  weekday_minutes_max: 30,
+  takeaway_per_week: 2,
+  weekly_recurring: {
+    fredag: "sushi",
+    söndag: "comfort food eller crispy chicken / grill / pasta",
+  },
+  flavor_profile: [
+    "umami",
+    "parmesan",
+    "cheddar",
+    "soja-honung-chili",
+    "vitlök",
+    "lime",
+    "krispigt",
+    "streetfood",
+    "asiatiskt-möter-comfort-food",
+  ],
+  avoid: [
+    "avancerad fine dining hemma",
+    "överdrivet nyttigt",
+    "komplicerade recept med många steg",
+    "ihop-rörda rätter där allt blandas",
+  ],
+  budget_level: "semi-premium",
+  notes:
+    "Tacos är standard och återkommer gärna. Smashburgare, crispy chicken wraps, kycklingpasta, lax med ris och pasta-rätter är starka kort som funkar för hela familjen.",
+};
+
+export const HECTOR_FAMILY_MEMBERS = [
+  {
+    name: "Filip",
+    role: "vuxen" as const,
+    avatar_color: "rust",
+    eats_red_meat: true,
+    eats_fish: true,
+    eats_chicken: true,
+    eats_pork: true,
+    vegetarian: false,
+    loves: [
+      "smashburgare",
+      "tacos",
+      "grillat",
+      "kyckling",
+      "pasta",
+      "comfort food",
+      "OFYR/grill-mat",
+      "premium-feeling hemma",
+      "drinkar med mycket smak",
+    ],
+    always_eats: [
+      "espresso beans",
+      "energy drinks",
+      "grape tonic",
+      "lime",
+      "citron",
+      "grapefrukt",
+      "orgeat (för drinkar)",
+    ],
+    notes: "Äter i princip allt. Föredrar inte mousserande vin i drinkar.",
+  },
+  {
+    name: "Tine",
+    role: "vuxen" as const,
+    avatar_color: "petrol",
+    eats_red_meat: false,
+    eats_fish: true,
+    eats_chicken: true,
+    eats_pork: false,
+    loves: [
+      "lax",
+      "kycklingrätter",
+      "fräscha bowls",
+      "wraps",
+      "pasta",
+      "asiatiska smaker",
+      "enkel men bra mat",
+    ],
+    always_eats: ["te", "nötter", "avokado", "choklad"],
+    notes:
+      "Äter inte rött kött. Äter kyckling, fisk och vegetariskt ibland. Mest nöjd med fräscha rätter.",
+  },
+  {
+    name: "Bill",
+    role: "barn" as const,
+    avatar_color: "camel",
+    eats_red_meat: true,
+    eats_fish: true,
+    eats_chicken: true,
+    loves: ["burgare", "tacos", "pasta", "sushi", "kyckling", "snacks", "fredagsmat"],
+    notes: "Äter det mesta. Funkar bra med standardrätter.",
+  },
+  {
+    name: "Todd",
+    role: "barn" as const,
+    avatar_color: "olive",
+    eats_red_meat: true,
+    eats_fish: false,
+    eats_chicken: true,
+    loves: [
+      "pasta med ketchup och parmesan",
+      "scrambled eggs",
+      "korv med bröd",
+      "korv med hamburgerbröd",
+      "riskakor",
+      "saft",
+      "salt-and-vinegar-chips",
+      "skorpor",
+    ],
+    food_strategy:
+      "Selektiv. Separera komponenter — tvinga aldrig ihop-rörda rätter. Ha alltid parmesan, pasta, bröd, ketchup hemma.",
+    always_eats: ["pasta", "parmesan", "ketchup", "bröd", "riskakor"],
+    notes: "Selektiv matprofil. Servera komponenter separat.",
+  },
+];
+
+// Always-have-items (skafferi/kyl/grönt-basics som ALLTID ska finnas)
+export const HECTOR_ALWAYS_HAVE = [
+  // Kyl/Frys
+  { display_name: "Kycklingfilé", category: "kött" },
+  { display_name: "Högrevsfärs", category: "kött" },
+  { display_name: "Lax", category: "fisk" },
+  { display_name: "Bacon", category: "kött" },
+  { display_name: "Ägg", category: "mejeri" },
+  { display_name: "Parmesan", category: "mejeri" },
+  { display_name: "Cheddar", category: "mejeri" },
+  { display_name: "Crème fraîche", category: "mejeri" },
+  // Skafferi
+  { display_name: "Pasta", category: "skafferi" },
+  { display_name: "Ris", category: "skafferi" },
+  { display_name: "Tortillas", category: "skafferi" },
+  { display_name: "Hamburgerbröd", category: "bröd" },
+  { display_name: "Nachochips", category: "skafferi" },
+  { display_name: "Riskakor", category: "skafferi" },
+  // Grönt
+  { display_name: "Avokado", category: "frukt-grönt" },
+  { display_name: "Lime", category: "frukt-grönt" },
+  { display_name: "Citron", category: "frukt-grönt" },
+  { display_name: "Vitlök", category: "frukt-grönt" },
+  { display_name: "Rödlök", category: "frukt-grönt" },
+  { display_name: "Sallad", category: "frukt-grönt" },
+  { display_name: "Broccoli", category: "frukt-grönt" },
+  // Snacks/Dryck
+  { display_name: "Choklad", category: "snacks" },
+  { display_name: "Nötter", category: "snacks" },
+  { display_name: "Energy drinks", category: "dryck" },
+  { display_name: "Espresso beans", category: "dryck" },
+  { display_name: "Grape tonic", category: "dryck" },
+  { display_name: "Saft", category: "dryck" },
+  { display_name: "Chips", category: "snacks" },
+];

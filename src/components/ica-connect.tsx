@@ -21,7 +21,7 @@ export function IcaConnect({
   const [username, setUsername] = useState(initial?.ica_username ?? "");
   const [password, setPassword] = useState("");
   const [storeId, setStoreId] = useState(initial?.default_store_id ?? "");
-  const [storeName, setStoreName] = useState(initial?.default_store_name ?? "ICA Maxi Sollentuna");
+  const [storeName, setStoreName] = useState(initial?.default_store_name ?? "Maxi ICA Stormarknad Häggvik");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -96,7 +96,7 @@ export function IcaConnect({
           type="text"
           value={storeName}
           onChange={(e) => setStoreName(e.target.value)}
-          placeholder="ICA Maxi Sollentuna"
+          placeholder="Maxi ICA Stormarknad Häggvik"
           className="w-full bg-transparent border-b border-espresso/30 px-1 py-2 focus:outline-none focus:border-espresso"
         />
       </div>

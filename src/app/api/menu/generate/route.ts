@@ -30,13 +30,18 @@ export async function POST(req: Request) {
     .filter((e) => e.takeaway)
     .map((e) => ({ date: e.date, slot: e.slot, type: e.takeaway_type ?? undefined }));
 
-  // Preferences
-  const { data: prefs } = await supabase
-    .from("diet_preferences")
+  // Hushållsprofil
+  const { data: profile } = await supabase
+    .from("household_profile")
     .select("*")
     .eq("household_id", plan.household_id)
-    .eq("user_id", user.id)
     .maybeSingle();
+
+  // Familjemedlemmar
+  const { data: members } = await supabase
+    .from("family_members")
+    .select("*")
+    .eq("household_id", plan.household_id);
 
   // Pantry
   const { data: pantry } = await supabase
@@ -54,13 +59,33 @@ export async function POST(req: Request) {
   try {
     week = await generateWeekMenu({
       weekStart: plan.week_start,
-      servings: 4,
-      preferences: {
-        allergies: prefs?.allergies ?? [],
-        dislikes: prefs?.dislikes ?? [],
-        diet_type: prefs?.diet_type ?? null,
-        notes: prefs?.notes ?? null,
+      servings: members?.length || 4,
+      household: {
+        cooking_style: profile?.cooking_style ?? null,
+        weekday_minutes_max: profile?.weekday_minutes_max ?? 30,
+        takeaway_per_week: profile?.takeaway_per_week ?? 2,
+        weekly_recurring: profile?.weekly_recurring ?? {},
+        flavor_profile: profile?.flavor_profile ?? [],
+        avoid: profile?.avoid ?? [],
+        budget_level: profile?.budget_level ?? "medel",
+        notes: profile?.notes ?? null,
       },
+      members: (members ?? []).map((m) => ({
+        name: m.name,
+        role: m.role,
+        eats_red_meat: m.eats_red_meat,
+        eats_fish: m.eats_fish,
+        eats_chicken: m.eats_chicken,
+        eats_pork: m.eats_pork,
+        vegetarian: m.vegetarian,
+        vegan: m.vegan,
+        allergies: m.allergies ?? [],
+        loves: m.loves ?? [],
+        dislikes: m.dislikes ?? [],
+        always_eats: m.always_eats ?? [],
+        food_strategy: m.food_strategy,
+        notes: m.notes,
+      })),
       pantry: pantry ?? [],
       alwaysHave: (alwaysHave ?? []).map((a) => a.display_name),
       takeawayDays,

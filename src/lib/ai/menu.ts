@@ -19,6 +19,7 @@ const RecipeSchema = z.object({
   tags: z.array(z.string()),
   instructions: z.array(z.string()),
   ingredients: z.array(RecipeIngredientSchema),
+  todd_safe_components: z.array(z.string()).optional(), // separata komponenter Todd kan äta
 });
 
 const MealEntrySchema = z.object({
@@ -38,15 +39,39 @@ export type GeneratedRecipe = z.infer<typeof RecipeSchema>;
 export type GeneratedEntry = z.infer<typeof MealEntrySchema>;
 export type GeneratedWeek = z.infer<typeof WeekPlanSchema>;
 
+export interface FamilyMemberInput {
+  name: string;
+  role: string;
+  eats_red_meat: boolean;
+  eats_fish: boolean;
+  eats_chicken: boolean;
+  eats_pork: boolean;
+  vegetarian: boolean;
+  vegan: boolean;
+  allergies: string[];
+  loves: string[];
+  dislikes: string[];
+  always_eats: string[];
+  food_strategy: string | null;
+  notes: string | null;
+}
+
+export interface HouseholdProfileInput {
+  cooking_style: string | null;
+  weekday_minutes_max: number;
+  takeaway_per_week: number;
+  weekly_recurring: Record<string, string>;
+  flavor_profile: string[];
+  avoid: string[];
+  budget_level: string;
+  notes: string | null;
+}
+
 export interface GenerateMenuInput {
-  weekStart: string; // ISO date (måndag)
+  weekStart: string;
   servings: number;
-  preferences: {
-    allergies: string[];
-    dislikes: string[];
-    diet_type: string | null;
-    notes: string | null;
-  };
+  household: HouseholdProfileInput;
+  members: FamilyMemberInput[];
   pantry: { name: string; quantity: number | null; unit: string | null }[];
   alwaysHave: string[];
   takeawayDays: { date: string; slot: string; type?: string }[];
@@ -54,22 +79,25 @@ export interface GenerateMenuInput {
 
 const SYSTEM_PROMPT = `Du är en svensk hushållskock som planerar veckomenyer för svenska familjer.
 
-Stil: vardagsmat — enkel, näringsrik, säsongsanpassad, hämtad från svenska och nordiska traditioner men öppen för internationella inslag (asiatiskt, italienskt, mexikanskt) när det passar.
+KÄRNVÄRDERINGAR:
+- Vardagsmat ska vara enkel, snabb och GOD ("håll-käften-gott" > nyttigt perfektionstänk)
+- Smak före hälsa, men hälsa kommer naturligt
+- Komfort och förutsägbarhet vinner över överraskningar på vardagar
+- Helger får vara lite mer ambitiösa
+- Respektera familjemedlemmars individuella preferenser STRIKT — det är viktigare än variation
 
-Regler:
-- Bara middagar, om inte annat anges
-- 4 portioner som standard
-- Varierat över veckan: aldrig samma proteinkälla två dagar i rad, max 2 vegetariska dagar (om inte preferens säger annat)
-- Vardagar (mån-tors): 30 min eller mindre, snabba enkla rätter
-- Fredag: lite roligare, gärna något barnen gillar (taco, burgare, pizza)
-- Lördag: lite mer ambitiöst om kockaren vill, annars takeaway-vänligt
-- Söndag: husmanskost — något långkok, gryta, eller söndagsstek
-- Använd ingredienser som finns hemma där det går — markera vilka i ingredienslistan
-- Svenska ingrediensnamn (kyckling, fläskfilé, grädde, smör, etc.)
-- Mängder i metriska enheter (g, dl, ml, st)
-- Kategorier på ingredienser: kött, fisk, mejeri, frukt-grönt, skafferi, frys, bröd
+REGLER:
+- Bara middagar
+- Standard 4 portioner, justera om annat anges
+- Allergier ÄR ABSOLUTA — aldrig förhandlingsbart
+- Om en medlem inte äter en proteinkälla: använd den ALDRIG som huvudprotein
+- Om en medlem är selektiv: planera så hens "safe components" finns separat på tallriken — tvinga aldrig ihop-rörda rätter
+- Återkommande veckorutiner (t.ex. "fredag = sushi") ska följas såvida inte takeaway-dag säger annat
+- Undvik upprepning: aldrig samma proteinkälla två dagar i rad
+- Veta vad som finns hemma: använd dessa ingredienser där det går
+- Svenska ingrediensnamn, metriska enheter, kategorier (kött, fisk, mejeri, frukt-grönt, skafferi, frys, bröd, snacks, dryck)
 
-Output: JSON enligt schemat. Inga extra fält.`;
+OUTPUT: JSON enligt schemat. Inga extra fält. Inga kommentarer utanför JSON.`;
 
 export async function generateWeekMenu(input: GenerateMenuInput): Promise<GeneratedWeek> {
   const client = new Anthropic({
@@ -80,7 +108,7 @@ export async function generateWeekMenu(input: GenerateMenuInput): Promise<Genera
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 8000,
+    max_tokens: 12000,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: userPrompt }],
   });
@@ -90,7 +118,9 @@ export async function generateWeekMenu(input: GenerateMenuInput): Promise<Genera
     .map((b) => (b as { text: string }).text)
     .join("\n");
 
-  const jsonMatch = text.match(/```json\s*([\s\S]+?)\s*```/) || text.match(/(\{[\s\S]+\})/);
+  const jsonMatch =
+    text.match(/```json\s*([\s\S]+?)\s*```/) ||
+    text.match(/(\{[\s\S]+\})/);
   if (!jsonMatch) throw new Error("Inget JSON-svar från Claude");
 
   const parsed = JSON.parse(jsonMatch[1]);
@@ -104,58 +134,122 @@ function buildPrompt(input: GenerateMenuInput): string {
     return d.toISOString().slice(0, 10);
   });
 
+  const dayLabels = ["måndag", "tisdag", "onsdag", "torsdag", "fredag", "lördag", "söndag"];
+
   const takeawayMap = new Map(
     input.takeawayDays.map((t) => [`${t.date}-${t.slot}`, t.type ?? "takeaway"])
   );
 
-  return `Planera veckans middagar för måndag ${input.weekStart} till söndag ${days[6]}.
+  const memberBlocks = input.members
+    .map((m) => {
+      const meatStatus = [
+        !m.eats_red_meat && "INTE rött kött",
+        !m.eats_fish && "INTE fisk",
+        !m.eats_chicken && "INTE kyckling",
+        !m.eats_pork && "INTE fläsk",
+        m.vegetarian && "vegetarian",
+        m.vegan && "vegan",
+      ]
+        .filter(Boolean)
+        .join(", ");
+
+      return `### ${m.name} (${m.role})
+${meatStatus ? `- Äter: ${meatStatus}` : ""}
+${m.allergies.length ? `- Allergier (STRIKT UNDVIK): ${m.allergies.join(", ")}` : ""}
+${m.loves.length ? `- Älskar: ${m.loves.join(", ")}` : ""}
+${m.dislikes.length ? `- Gillar inte: ${m.dislikes.join(", ")}` : ""}
+${m.always_eats.length ? `- Safe foods / vill alltid kunna äta: ${m.always_eats.join(", ")}` : ""}
+${m.food_strategy ? `- STRATEGI: ${m.food_strategy}` : ""}
+${m.notes ? `- Anteckningar: ${m.notes}` : ""}`.trim();
+    })
+    .join("\n\n");
+
+  const recurringRules = Object.entries(input.household.weekly_recurring)
+    .map(([day, rule]) => `- ${day}: ${rule}`)
+    .join("\n");
+
+  return `Planera veckans middagar för måndag ${days[0]} till söndag ${days[6]}.
 
 ANTAL PORTIONER: ${input.servings}
 
-PREFERENSER:
-${input.preferences.diet_type ? `- Kost: ${input.preferences.diet_type}` : ""}
-${input.preferences.allergies.length ? `- Allergier (UNDVIK STRIKT): ${input.preferences.allergies.join(", ")}` : ""}
-${input.preferences.dislikes.length ? `- Vi gillar inte: ${input.preferences.dislikes.join(", ")}` : ""}
-${input.preferences.notes ? `- Övrigt: ${input.preferences.notes}` : ""}
+═══════════════════════════════════════
+HUSHÅLLETS MATSTIL
+═══════════════════════════════════════
 
-FINNS HEMMA (använd där det går):
-${input.pantry.length ? input.pantry.map((p) => `- ${p.name}${p.quantity ? ` (${p.quantity}${p.unit ?? ""})` : ""}`).join("\n") : "- Inget loggat"}
+${input.household.cooking_style ?? "(ingen specifik stil)"}
 
-ALLTID HEMMA (anta att vi har): ${input.alwaysHave.length ? input.alwaysHave.join(", ") : "salt, peppar, olja"}
+- Vardagsmat (mån-tors): max ${input.household.weekday_minutes_max} min totalt
+- ${input.household.takeaway_per_week} takeaway-kvällar/vecka är OK
+- Budget-nivå: ${input.household.budget_level}
 
-TAKEAWAY-KVÄLLAR (planera INTE recept dessa kvällar, sätt takeaway:true):
-${takeawayMap.size ? Array.from(takeawayMap.entries()).map(([k, v]) => `- ${k}: ${v}`).join("\n") : "- Inga"}
+ÅTERKOMMANDE VECKORUTINER (följ alltid):
+${recurringRules || "(inga)"}
 
-Returnera JSON i detta exakta format (inga extra fält):
+SMAKPROFIL ATT JOBBA MED:
+${input.household.flavor_profile.length ? input.household.flavor_profile.map((f) => `- ${f}`).join("\n") : "(öppet)"}
+
+UNDVIK:
+${input.household.avoid.length ? input.household.avoid.map((a) => `- ${a}`).join("\n") : "(inget specifikt)"}
+
+${input.household.notes ? `Övrigt: ${input.household.notes}` : ""}
+
+═══════════════════════════════════════
+FAMILJEMEDLEMMAR
+═══════════════════════════════════════
+
+${memberBlocks}
+
+═══════════════════════════════════════
+SKAFFERI & HEMMAFINNS
+═══════════════════════════════════════
+
+Finns just nu hemma (använd där det går):
+${input.pantry.length ? input.pantry.map((p) => `- ${p.name}${p.quantity ? ` (${p.quantity}${p.unit ?? ""})` : ""}`).join("\n") : "(inget loggat)"}
+
+Antas alltid finnas hemma:
+${input.alwaysHave.length ? input.alwaysHave.map((a) => `- ${a}`).join("\n") : "(salt, peppar, olja)"}
+
+═══════════════════════════════════════
+TAKEAWAY-KVÄLLAR (planera INTE recept)
+═══════════════════════════════════════
+
+${takeawayMap.size ? Array.from(takeawayMap.entries()).map(([k, v]) => `- ${k}: ${v}`).join("\n") : "(inga markerade — du får föreslå själv om veckorutinerna säger något)"}
+
+═══════════════════════════════════════
+OUTPUT
+═══════════════════════════════════════
+
+Returnera JSON i detta exakta format. En entry per dag (${dayLabels.join(", ")}), bara middag.
+
+För selektiva ätare (som Todd): inkludera \`todd_safe_components\` med vad hen kan äta från rätten ELLER vad som ska serveras separat.
 
 \`\`\`json
 {
-  "notes": "Kort kommentar om veckan, max 2 meningar",
+  "notes": "Kort kommentar om veckans tanke, max 2 meningar",
   "entries": [
     {
       "date": "${days[0]}",
       "slot": "middag",
       "recipe": {
-        "title": "Kycklingpasta med pesto och soltorkade tomater",
-        "description": "Snabb vardagsrätt på 25 min.",
+        "title": "Crispy chicken wraps",
+        "description": "Snabb fredagsfeeling på vardag.",
         "servings": ${input.servings},
-        "prep_minutes": 10,
+        "prep_minutes": 15,
         "cook_minutes": 15,
-        "cuisine": "italienskt",
+        "cuisine": "streetfood",
         "difficulty": "lätt",
-        "tags": ["snabbt", "barn"],
+        "tags": ["snabbt", "barn", "comfort"],
         "instructions": ["Steg 1", "Steg 2"],
         "ingredients": [
-          {"name": "Kycklingfilé", "quantity": 500, "unit": "g", "category": "kött"},
-          {"name": "Pasta", "quantity": 400, "unit": "g", "category": "skafferi"}
-        ]
+          {"name": "Kycklingfilé", "quantity": 600, "unit": "g", "category": "kött"},
+          {"name": "Tortillas", "quantity": 8, "unit": "st", "category": "bröd"}
+        ],
+        "todd_safe_components": ["kyckling utan sås separat", "tortilla"]
       },
       "takeaway": false,
       "takeaway_type": null
     }
   ]
 }
-\`\`\`
-
-Generera en entry per dag (måndag-söndag), bara middag.`;
+\`\`\``;
 }

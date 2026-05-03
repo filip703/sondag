@@ -8,6 +8,7 @@ const items = [
   { href: "/vecka", label: "Vecka" },
   { href: "/skafferi", label: "Skafferi" },
   { href: "/inkop", label: "Inköp" },
+  { href: "/familj", label: "Familjen" },
   { href: "/installningar", label: "Inställningar" },
 ];
 

@@ -6,7 +6,7 @@ By Filip Hector · Stockholm, 2026
 
 ## Vad det är
 
-En matkompis för dig och Tine. Söndag genererar veckans middagar med AI baserat på era preferenser och vad som finns hemma, bygger en inköpslista, filtrerar bort det ni redan har, och synkar listan direkt till ditt Mitt ICA-konto så den dyker upp i handscannern på ICA Maxi Sollentuna.
+En matkompis för dig och Tine. Söndag genererar veckans middagar med AI baserat på era preferenser och vad som finns hemma, bygger en inköpslista, filtrerar bort det ni redan har, och synkar listan direkt till ditt Mitt ICA-konto så den dyker upp i handscannern på Maxi ICA Stormarknad Häggvik.
 
 ## Stack
 
