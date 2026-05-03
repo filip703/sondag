@@ -55,10 +55,8 @@ interface Recipe {
 
 function imageThumb(url: string | null | undefined, size = 80): string | null {
   if (!url) return null;
-  // Pollinations stöder query-params för att resize:a — vi tar en mindre version till veckogriden
-  if (url.includes("image.pollinations.ai")) {
-    return url.replace(/width=\d+/, `width=${size}`).replace(/height=\d+/, `height=${size}`);
-  }
+  // Pollinations rate-limitar oss — slå av tills vi har riktig provider
+  if (url.includes("image.pollinations.ai")) return null;
   return url;
 }
 

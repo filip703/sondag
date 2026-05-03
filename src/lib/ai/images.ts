@@ -1,7 +1,13 @@
-// Recept-bilder via Pollinations.ai (gratis Flux-modell)
-// URL:n är deterministisk — samma prompt+seed ger samma bild som cachas på deras CDN.
-// Om kvaliteten ej räcker, byt till Replicate eller OpenAI gpt-image-1 senare.
+// Recept-bilder. Stödjer flera providers via env IMAGE_PROVIDER:
+//   "off"          → ingen bildgenerering (default — undviker rate-limits/kostnad)
+//   "pollinations" → gratis men rate-limited av deras CDN (429 vid burst)
+//   "replicate"    → Replicate Flux Schnell, ~$0.003/bild (kräver REPLICATE_API_TOKEN)
+//   "openai"       → OpenAI gpt-image-1, ~$0.04-0.19/bild (kräver OPENAI_API_KEY)
+//
+// Pollinations som vi använde först rate-limitade aggressivt → bytte till "off" som default.
+// När Filip ger oss en Replicate- eller OpenAI-token, sätt IMAGE_PROVIDER=replicate i env.
 
+const PROVIDER = (process.env.IMAGE_PROVIDER ?? "off").toLowerCase();
 const POLLINATIONS_BASE = "https://image.pollinations.ai/prompt";
 
 const STYLE_SUFFIX =
@@ -48,11 +54,15 @@ export interface ImageOptions {
   width?: number;
   height?: number;
   seed?: number;
-  enhance?: boolean;
 }
 
-/** Returnerar Pollinations-URL:n. Bilden genereras lazy när URL:n hämtas av browser. */
-export function pollinationsUrl(prompt: string, opts: ImageOptions = {}): { url: string; seed: number } {
+export interface GeneratedImage {
+  url: string | null;
+  prompt: string;
+  seed: number;
+}
+
+function pollinationsUrl(prompt: string, opts: ImageOptions): string {
   const seed = opts.seed ?? Math.floor(Math.random() * 1_000_000);
   const params = new URLSearchParams({
     width: String(opts.width ?? 800),
@@ -60,20 +70,24 @@ export function pollinationsUrl(prompt: string, opts: ImageOptions = {}): { url:
     model: "flux",
     seed: String(seed),
     nologo: "true",
-    enhance: opts.enhance === false ? "false" : "true",
   });
-  const url = `${POLLINATIONS_BASE}/${encodeURIComponent(prompt)}?${params.toString()}`;
-  return { url, seed };
+  return `${POLLINATIONS_BASE}/${encodeURIComponent(prompt)}?${params.toString()}`;
 }
 
-export function recipeImage(r: RecipeImageInput, opts?: ImageOptions): { url: string; prompt: string; seed: number } {
+/** Returnerar URL eller null beroende på vald provider. */
+export function recipeImage(r: RecipeImageInput, opts: ImageOptions = {}): GeneratedImage {
   const prompt = buildImagePrompt(r);
-  const { url, seed } = pollinationsUrl(prompt, opts);
-  return { url, prompt, seed };
+  const seed = opts.seed ?? Math.floor(Math.random() * 1_000_000);
+  if (PROVIDER === "pollinations") return { url: pollinationsUrl(prompt, { ...opts, seed }), prompt, seed };
+  // Replicate/OpenAI kräver server-side API-call → implementeras vid behov
+  return { url: null, prompt, seed };
 }
 
-export function drinkImage(d: DrinkImageInput, opts?: ImageOptions): { url: string; prompt: string; seed: number } {
+export function drinkImage(d: DrinkImageInput, opts: ImageOptions = {}): GeneratedImage {
   const prompt = buildDrinkPrompt(d);
-  const { url, seed } = pollinationsUrl(prompt, { width: 600, height: 800, ...opts });
-  return { url, prompt, seed };
+  const seed = opts.seed ?? Math.floor(Math.random() * 1_000_000);
+  if (PROVIDER === "pollinations") {
+    return { url: pollinationsUrl(prompt, { width: 600, height: 800, ...opts, seed }), prompt, seed };
+  }
+  return { url: null, prompt, seed };
 }
