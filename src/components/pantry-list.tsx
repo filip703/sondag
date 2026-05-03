@@ -1,10 +1,17 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { addPantryItemAction, removePantryItemAction, removeAlwaysHaveAction } from "@/app/actions/pantry";
-import { Trash2, Plus, Pin } from "lucide-react";
+import {
+  addPantryItemAction,
+  removePantryItemAction,
+  removeAlwaysHaveAction,
+  movePantryItemAction,
+} from "@/app/actions/pantry";
+import { Trash2, Plus, Pin, Refrigerator, Snowflake, Package, ArrowRightLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+type Storage = "skafferi" | "kyl" | "frys";
 
 interface PantryItem {
   id: string;
@@ -12,6 +19,7 @@ interface PantryItem {
   quantity: number | null;
   unit: string | null;
   category: string | null;
+  storage: Storage | null;
   expiry_date: string | null;
 }
 
@@ -20,6 +28,12 @@ interface AlwaysHave {
   display_name: string;
   category: string | null;
 }
+
+const TABS: { key: Storage; label: string; Icon: typeof Package }[] = [
+  { key: "skafferi", label: "Skafferi", Icon: Package },
+  { key: "kyl", label: "Kyl", Icon: Refrigerator },
+  { key: "frys", label: "Frys", Icon: Snowflake },
+];
 
 export function PantryList({
   householdId,
@@ -30,12 +44,24 @@ export function PantryList({
   items: PantryItem[];
   alwaysHave: AlwaysHave[];
 }) {
+  const [activeTab, setActiveTab] = useState<Storage>("skafferi");
   const [name, setName] = useState("");
   const [quantity, setQuantity] = useState("");
   const [unit, setUnit] = useState("");
   const [category, setCategory] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+
+  const tabbed = useMemo(() => {
+    const out: Record<Storage, PantryItem[]> = { skafferi: [], kyl: [], frys: [] };
+    for (const it of items) {
+      const s = (it.storage ?? "skafferi") as Storage;
+      out[s].push(it);
+    }
+    return out;
+  }, [items]);
+
+  const visible = tabbed[activeTab];
 
   function add() {
     if (!name.trim()) return;
@@ -46,6 +72,7 @@ export function PantryList({
         quantity: quantity ? parseFloat(quantity) : null,
         unit: unit || null,
         category: category || null,
+        storage: activeTab,
       });
       setName(""); setQuantity(""); setUnit(""); setCategory("");
       router.refresh();
@@ -59,6 +86,13 @@ export function PantryList({
     });
   }
 
+  function move(id: string, target: Storage) {
+    startTransition(async () => {
+      await movePantryItemAction(id, target);
+      router.refresh();
+    });
+  }
+
   function removeAlways(id: string) {
     startTransition(async () => {
       await removeAlwaysHaveAction(id);
@@ -66,8 +100,8 @@ export function PantryList({
     });
   }
 
-  // Gruppera per kategori
-  const grouped = items.reduce<Record<string, PantryItem[]>>((acc, it) => {
+  // Gruppera per kategori i aktiv tab
+  const grouped = visible.reduce<Record<string, PantryItem[]>>((acc, it) => {
     const key = it.category || "Övrigt";
     (acc[key] ||= []).push(it);
     return acc;
@@ -76,8 +110,37 @@ export function PantryList({
   return (
     <div className="grid md:grid-cols-3 gap-10">
       <div className="md:col-span-2">
+        {/* Tabs */}
+        <div className="flex border-b border-espresso/15 mb-8">
+          {TABS.map(({ key, label, Icon }) => {
+            const count = tabbed[key].length;
+            const active = key === activeTab;
+            return (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={cn(
+                  "px-5 py-3 flex items-center gap-2 text-sm transition border-b-2 -mb-px",
+                  active
+                    ? "border-rust text-espresso"
+                    : "border-transparent text-ink-soft hover:text-espresso"
+                )}
+              >
+                <Icon size={14} />
+                <span>{label}</span>
+                <span className={cn("text-xs tabular-nums", active ? "text-rust" : "text-ink-soft/60")}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Lägg till */}
         <div className="card p-5 mb-8">
-          <p className="eyebrow mb-4">Lägg till</p>
+          <p className="eyebrow mb-4">
+            Lägg till i {TABS.find((t) => t.key === activeTab)?.label.toLowerCase()}
+          </p>
           <div className="grid grid-cols-12 gap-3">
             <input
               className="col-span-12 md:col-span-5 bg-transparent border-b border-espresso/30 px-1 py-2 focus:outline-none focus:border-espresso"
@@ -116,7 +179,8 @@ export function PantryList({
 
         {Object.entries(grouped).length === 0 && (
           <p className="text-sm text-ink-soft italic">
-            Skafferiet är tomt. Börja med att lägga till några basvaror.
+            Inget i {TABS.find((t) => t.key === activeTab)?.label.toLowerCase()} än.
+            Markera "finns hemma" på inköpslistan eller scanna en streckkod.
           </p>
         )}
 
@@ -129,15 +193,28 @@ export function PantryList({
               {list.map((it) => (
                 <li
                   key={it.id}
-                  className="flex items-center justify-between py-2.5 border-b border-espresso/10"
+                  className="flex items-center justify-between py-2.5 border-b border-espresso/10 group"
                 >
                   <span className="text-sm">{it.name}</span>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
                     {(it.quantity || it.unit) && (
                       <span className="text-xs text-ink-soft tabular-nums">
                         {it.quantity}{it.unit && ` ${it.unit}`}
                       </span>
                     )}
+                    {/* Flytta till annan lagring */}
+                    <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition">
+                      {TABS.filter((t) => t.key !== activeTab).map(({ key, label, Icon }) => (
+                        <button
+                          key={key}
+                          onClick={() => move(it.id, key)}
+                          title={`Flytta till ${label.toLowerCase()}`}
+                          className="text-ink-soft hover:text-petrol p-1"
+                        >
+                          <Icon size={12} />
+                        </button>
+                      ))}
+                    </div>
                     <button
                       onClick={() => remove(it.id)}
                       className="text-ink-soft hover:text-burgundy transition"

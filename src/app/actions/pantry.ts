@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { normalizeName } from "@/lib/utils";
 import { logActivity } from "@/lib/activity";
+import { classifyStorage, type Storage } from "@/lib/storage-classify";
 
 interface AddArgs {
   household_id: string;
@@ -11,13 +12,15 @@ interface AddArgs {
   quantity: number | null;
   unit: string | null;
   category: string | null;
+  storage?: Storage;
 }
 
 export async function addPantryItemAction(args: AddArgs) {
   const supabase = await createClient();
+  const storage: Storage = args.storage ?? classifyStorage(args.category, args.name);
   const { data, error } = await supabase
     .from("sondag_pantry_items")
-    .insert(args)
+    .insert({ ...args, storage })
     .select()
     .single();
   if (error) throw new Error(error.message);
@@ -25,10 +28,16 @@ export async function addPantryItemAction(args: AddArgs) {
     verb: "added_pantry",
     object_type: "pantry_item",
     object_id: data?.id,
-    object_name: args.name,
+    object_name: `${args.name} → ${storage}`,
   });
   revalidatePath("/skafferi");
   revalidatePath("/aktivitet");
+}
+
+export async function movePantryItemAction(id: string, storage: Storage) {
+  const supabase = await createClient();
+  await supabase.from("sondag_pantry_items").update({ storage }).eq("id", id);
+  revalidatePath("/skafferi");
 }
 
 export async function removePantryItemAction(id: string) {
@@ -46,7 +55,6 @@ export async function removePantryItemAction(id: string) {
     object_name: existing?.name,
   });
   revalidatePath("/skafferi");
-  revalidatePath("/aktivitet");
 }
 
 export async function rememberAlwaysHaveAction(args: {

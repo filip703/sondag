@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { normalizeName } from "@/lib/utils";
 import { logActivity } from "@/lib/activity";
+import { classifyStorage, type Storage } from "@/lib/storage-classify";
 
 export async function toggleCheckedAction(itemId: string, checked: boolean) {
   const supabase = await createClient();
@@ -137,4 +138,47 @@ export async function removeShoppingItemAction(itemId: string) {
     object_name: existing?.name,
   });
   revalidatePath("/inkop");
+  revalidatePath("/handla");
+}
+
+/**
+ * "Finns redan hemma" — flyttar varan från inköpslistan till skafferiet/kyl/frys.
+ * Auto-klassar baserat på kategori om storage inte anges.
+ */
+export async function moveToHomeAction(itemId: string, storage?: Storage) {
+  const supabase = await createClient();
+
+  const { data: item } = await supabase
+    .from("sondag_shopping_list_items")
+    .select("*, sondag_shopping_lists!inner(household_id)")
+    .eq("id", itemId)
+    .maybeSingle();
+
+  if (!item) return;
+
+  const householdId = (item.sondag_shopping_lists as { household_id: string }).household_id;
+  const target: Storage = storage ?? classifyStorage(item.category, item.name);
+
+  await supabase.from("sondag_pantry_items").insert({
+    household_id: householdId,
+    name: item.name,
+    quantity: item.quantity,
+    unit: item.unit,
+    category: item.category,
+    storage: target,
+    ica_ean: item.ica_ean,
+  });
+
+  await supabase.from("sondag_shopping_list_items").delete().eq("id", itemId);
+
+  await logActivity({
+    verb: "marked_have_at_home",
+    object_type: "pantry_item",
+    object_name: `${item.name} → ${target}`,
+    payload: { storage: target, moved_from: "shopping_list" },
+  });
+
+  revalidatePath("/handla");
+  revalidatePath("/inkop");
+  revalidatePath("/skafferi");
 }

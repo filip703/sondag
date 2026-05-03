@@ -2,10 +2,14 @@
 
 import { useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, RefreshCw, ShoppingCart, Store } from "lucide-react";
+import { Check, Copy, RefreshCw, ShoppingCart, Store, Trash2, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { aisleOrder, aisleLabel } from "@/lib/store-layout";
-import { toggleCheckedAction } from "@/app/actions/shopping-list";
+import {
+  toggleCheckedAction,
+  removeShoppingItemAction,
+  moveToHomeAction,
+} from "@/app/actions/shopping-list";
 
 interface Item {
   id: string;
@@ -71,6 +75,20 @@ export function HandlaView({
   function toggle(item: Item) {
     startTransition(async () => {
       await toggleCheckedAction(item.id, !item.checked);
+      router.refresh();
+    });
+  }
+
+  function remove(item: Item) {
+    startTransition(async () => {
+      await removeShoppingItemAction(item.id);
+      router.refresh();
+    });
+  }
+
+  function moveToHome(item: Item) {
+    startTransition(async () => {
+      await moveToHomeAction(item.id);
       router.refresh();
     });
   }
@@ -188,42 +206,62 @@ export function HandlaView({
               </div>
               <div className="border-t border-espresso/15">
                 {list.map((item) => (
-                  <button
+                  <div
                     key={item.id}
-                    onClick={() => toggle(item)}
-                    disabled={isPending}
                     className={cn(
-                      "w-full flex items-center gap-4 py-4 border-b border-espresso/10 text-left transition active:bg-cream-accent",
+                      "w-full flex items-center gap-3 py-3 border-b border-espresso/10 transition group",
                       item.checked && "bg-cream-light/50"
                     )}
                   >
-                    <span
-                      className={cn(
-                        "w-7 h-7 border rounded-sm flex items-center justify-center transition shrink-0",
-                        item.checked
-                          ? "bg-espresso border-espresso text-cream"
-                          : "border-espresso/40"
-                      )}
+                    <button
+                      onClick={() => toggle(item)}
+                      disabled={isPending}
+                      className="flex items-center gap-4 flex-1 text-left active:bg-cream-accent -my-1 py-1 px-2 -ml-2 rounded-sm"
                     >
-                      {item.checked && <Check size={16} strokeWidth={3} />}
-                    </span>
-                    <div className="flex-1">
-                      <p
+                      <span
                         className={cn(
-                          "text-base font-medium leading-tight",
-                          item.checked && "line-through text-ink-soft"
+                          "w-7 h-7 border rounded-sm flex items-center justify-center transition shrink-0",
+                          item.checked
+                            ? "bg-espresso border-espresso text-cream"
+                            : "border-espresso/40"
                         )}
                       >
-                        {item.name}
-                      </p>
-                      {(item.quantity || item.unit) && (
-                        <p className="text-sm text-ink-soft tabular-nums mt-0.5">
-                          {item.quantity}
-                          {item.unit && ` ${item.unit}`}
+                        {item.checked && <Check size={16} strokeWidth={3} />}
+                      </span>
+                      <div className="flex-1">
+                        <p
+                          className={cn(
+                            "text-base font-medium leading-tight",
+                            item.checked && "line-through text-ink-soft"
+                          )}
+                        >
+                          {item.name}
                         </p>
-                      )}
-                    </div>
-                  </button>
+                        {(item.quantity || item.unit) && (
+                          <p className="text-sm text-ink-soft tabular-nums mt-0.5">
+                            {item.quantity}
+                            {item.unit && ` ${item.unit}`}
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => moveToHome(item)}
+                      disabled={isPending}
+                      title="Finns redan hemma → flytta till skafferi/kyl/frys"
+                      className="p-2 text-ink-soft hover:text-petrol active:bg-cream-accent rounded-sm shrink-0"
+                    >
+                      <Home size={16} />
+                    </button>
+                    <button
+                      onClick={() => remove(item)}
+                      disabled={isPending}
+                      title="Ta bort"
+                      className="p-2 text-ink-soft hover:text-burgundy active:bg-cream-accent rounded-sm shrink-0"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 ))}
               </div>
             </section>

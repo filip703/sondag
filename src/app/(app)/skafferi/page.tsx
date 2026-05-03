@@ -16,6 +16,7 @@ export default async function SkafferiPage() {
       .from("sondag_pantry_items")
       .select("*")
       .eq("household_id", household.household_id)
+      .order("storage", { ascending: true })
       .order("category", { ascending: true })
       .order("name", { ascending: true }),
     supabase
