@@ -197,9 +197,9 @@ export async function finishShoppingAction(): Promise<{ moved: number; new_list_
     .single();
 
   await logActivity({
-    verb: "marked_have_at_home",
+    verb: "synced_to_ica",
     object_type: "shopping_finished",
-    object_name: `${moved} varor flyttade hem`,
+    object_name: `Avslutade handlingen — ${moved} varor flyttade hem`,
     payload: { moved, list_id: list.id },
   });
 

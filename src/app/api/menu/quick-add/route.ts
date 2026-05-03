@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { logActivity } from "@/lib/activity";
 import { HOUSEHOLD_ID } from "@/lib/auth-pin";
+import { normalizeName } from "@/lib/utils";
 import Anthropic from "@anthropic-ai/sdk";
 
 export const maxDuration = 60;
@@ -114,7 +115,7 @@ export async function POST(req: Request) {
 
     await supabase.from("sondag_shopping_list_items").insert(
       recipe.ingredients.map((ing: { name: string; quantity: number | null; unit: string | null; category: string | null }, idx: number) => {
-        const norm = ing.name.toLowerCase().replace(/[åä]/g, "a").replace(/ö/g, "o").trim();
+        const norm = normalizeName(ing.name);
         return {
           shopping_list_id: list.id, name: ing.name, quantity: ing.quantity, unit: ing.unit, category: ing.category,
           have_at_home: alwaysHaveSet.has(norm), remember_have_at_home: alwaysHaveSet.has(norm),

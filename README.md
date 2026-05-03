@@ -1,128 +1,148 @@
 # Söndag
 
-Veckomeny, skafferi och inköpslista för familjen — synkat till ICA-handscannern.
+*Veckomeny, skafferi, inköpslista och bar för familjen.*
 
 By Filip Hector · Stockholm, 2026
 
+**Live:** [sondag.vercel.app](https://sondag.vercel.app) · **PIN:** `1337`
+
+För användarmanual se **[MANUAL.md](MANUAL.md)**. För historik se **[CHANGELOG.md](CHANGELOG.md)**.
+
 ## Vad det är
 
-En matkompis för dig och Tine. Söndag genererar veckans middagar med AI baserat på era preferenser och vad som finns hemma, bygger en inköpslista, filtrerar bort det ni redan har, och synkar listan direkt till ditt Mitt ICA-konto så den dyker upp i handscannern på Maxi ICA Stormarknad Häggvik.
+En matkompis för Familjen Hectorsen — sex personer, två generationer, en hund. Söndag genererar veckans middagar med AI baserat på medlemmarnas preferenser och vad som finns hemma, bygger en inköpslista, sorterar den efter Maxi ICA Häggviks butiksflöde, och flyttar bockade varor automatiskt till skafferi/kyl/frys efter handlingen.
+
+Plus drinkar — adult tiki möter modern boutique. Plus fest-läge med fyra kurser. Plus streckkods-scan från kylen. Plus AI som lär sig av betyg.
 
 ## Stack
 
-- Next.js 15 (App Router, Server Actions, Turbopack)
-- Supabase — auth, Postgres, RLS (samma projekt som Site Survey, schema `sondag`)
-- Anthropic Claude (`claude-sonnet-4-6`) för menygenerering
-- ICA Handla privata API (`handla.api.ica.se`)
-- Tailwind v4 + Fraunces/Manrope (Filip Hector Brand Standard)
-- Vercel för deploy
+- **Next.js 15** (App Router, Server Actions, Turbopack)
+- **Supabase** — auth, Postgres, RLS (samma projekt som Site Survey, schema `sondag`, views i `public.sondag_*`)
+- **Anthropic Claude** (`claude-sonnet-4-6`) för menygenerering, AI-bartender, recept-import, fest-design, cook-from-pantry
+- **@zxing/browser** för EAN-streckkods-scanning
+- **Open Food Facts API** för produkt-uppslag
+- **Tailwind v4** + Fraunces/Manrope (Filip Hector Brand Standard)
+- **Vercel** för deploy + auto-CI
 
-## Kom igång — local dev
+## Funktioner
+
+| Område | Beskrivning |
+|---|---|
+| **Vecka** | AI-genererad veckomeny för fyra. Per-cell takeaway, frånvaro, quick-add. Ratings 1-5★. Vecka-bläddring. Fest-knapp. Recept-import via URL. |
+| **Handla** | Inköpslista i Häggvik-butiksordning. Stora kryssrutor. Hus-ikon för "finns hemma". "Klar — flytta hem"-knapp. Kopiera/sync till ICA. |
+| **Skafferi** | Tabs för Skafferi/Kyl/Frys. Auto-klassad lagring. Streckkods-scan via kameran. "Vad kan jag laga?"-AI-knapp. |
+| **Skåp** | 51 bar-essentials + grundproviant. Refill-toggle. Exportera till veckohandling eller clipboard. |
+| **Baren** | 7 favorit-drinkar pre-seedade. AI-bartender i Filips smakprofil (rom/tequila, citrus, orgeat — INTE bubbel). |
+| **Familjen** | Per-medlem-profiler: allergier, älskar, dislikes, safe foods, kost-typ. |
+| **Aktivitet** | Vem-gjorde-vad-historik. Senaste 200 händelser, grupperat per dag. |
+| **Fest** | Pre-drink + förrätt + huvudrätt + dessert. Per-kurs regenerera. |
+
+## Datamodell
+
+Alla tabeller i `sondag`-schemat med vyer i `public.sondag_*` (PostgREST kräver dem).
+
+```
+households
+├─ household_members          (länk till auth.users — kvar för framtid)
+├─ family_members             (Filip, Tine, Bill, Todd — utan auth)
+├─ household_profile          (matstil, takeaway/vecka, weekly_recurring)
+├─ bar_profile                (drink-stil)
+├─ pantry_items               (vad finns hemma — storage: skafferi|kyl|frys)
+├─ always_have_items          (legacy, dolt i UI)
+├─ standard_pantry_items      (skåp/bar — needs_refill)
+├─ ica_connections            (token, default-butik)
+├─ ica_articles               (cache)
+├─ recipes                    (rating, rejected, ai_generated, source_url)
+│   └─ recipe_ingredients
+├─ drinks                     (signature, ai_generated)
+│   └─ drink_ingredients
+├─ meal_plans                 (en per vecka)
+│   └─ meal_plan_entries      (date × slot, takeaway, absent_member_names)
+├─ shopping_lists
+│   └─ shopping_list_items    (have_at_home, checked, remember_have_at_home)
+├─ takeaway_log
+├─ fest_events                (pre-drink + 3 kurser → recipes/drinks)
+└─ activity_log               (vem-gjorde-vad)
+```
+
+## Auth
+
+PIN-baserat single-tenant-läge. PIN i `SONDAG_PIN` env var, hushålls-id i `SONDAG_HOUSEHOLD_ID`. Två cookies:
+
+- `sondag_pin_ok=1` (HttpOnly, 30 dagar) — set efter `/api/pin` med rätt PIN
+- `sondag_actor` (JSON med id+name) — set efter `/valj` när medlem valts
+
+Middleware redirectar till `/pin` om PIN saknas, till `/valj` om actor saknas.
+
+## Lokal dev
 
 ```bash
-cd sondag
-cp .env.local.example .env.local
-# Lägg in ANTHROPIC_API_KEY och SUPABASE_SERVICE_ROLE_KEY
 npm install
-npm run dev
+cp .env.local.example .env.local
+# Fyll i ANTHROPIC_API_KEY
+npm run dev   # → http://localhost:3000
 ```
 
-Öppna [http://localhost:3000](http://localhost:3000).
+## Deploy
 
-Schemat är redan applicerat i Supabase-projektet `swagnjpgddfakncovglo` (Site Survey, schema `sondag`).
-
-## Deploy till Vercel
-
-```bash
-npx vercel link
-npx vercel env add ANTHROPIC_API_KEY
-npx vercel env add SUPABASE_SERVICE_ROLE_KEY
-npx vercel --prod
-```
-
-`NEXT_PUBLIC_SUPABASE_URL` och `NEXT_PUBLIC_SUPABASE_ANON_KEY` finns redan i `.env.local.example` — sätt dem som env vars i Vercel också.
+Push till `main` → Vercel auto-bygger. Env vars satta i Vercel-projektet `sondag` under `filip-hectors-projects`.
 
 ## Arkitektur
 
 ```
 src/
   app/
-    (app)/                    autentiserade vyer
-      vecka/                  veckomenyn
-      skafferi/               vad finns hemma
-      inkop/                  inköpslistan
-      installningar/          preferences + ICA
+    (app)/                      autentiserade vyer
+      vecka/                    veckomeny
+      handla/                   butiksoptimerad inköpslista
+      skafferi/                 hemma-tabs (skafferi/kyl/frys)
+      skap/                     standardproviant + bar
+      bar/                      drinkar + AI-bartender
+      familj/                   per-medlem-profiler
+      aktivitet/                händelse-feed
+      installningar/            ICA + preferenser
+      fest/[id]/                fest-detalj
+      inkop/                    legacy inköpslista (mestadels ersatt av /handla)
     api/
-      menu/generate/          POST → kör Claude + bygger inköpslista
-      ica/auth/               POST → loggar in mot ICA, sparar token
-      ica/sync/               POST → pushar listan till ICA-handscannern
-    auth/callback/            magic-link callback
-    actions/                  server actions (mutations)
-    login/                    magic-link inloggning
-    page.tsx                  landing
-  components/                 UI
+      pin/                      POST → set PIN-cookie
+      actor/                    POST → set actor-cookie
+      menu/generate/            POST → AI-vecka + bygg shopping list
+      menu/quick-add/           POST → AI-recept för en specifik cell
+      menu/cook-with-pantry/    POST → AI-förslag av enbart hemmafinns
+      menu/fest/                POST → AI-fest med 4 kurser, regenerera per kurs
+      drinks/suggest/           POST → AI-bartender
+      recipes/import/           POST → klistra URL → Claude extraherar recept
+      barcode/                  POST → EAN → Open Food Facts → pantry_items
+      ica/auth/                 POST → ICA-login (väntar på riktig sync)
+      ica/sync/                 POST → push lista (väntar på riktig sync)
+    pin/                        PIN-input
+    valj/                       actor-picker
+    auth/callback/              magic-link callback (legacy)
+  components/                   UI
   lib/
-    supabase/                 SSR-klienter (schema: sondag)
-    ai/menu.ts                Claude-prompt + Zod-validering
-    ica/                      Handla API-client
-    utils.ts                  helpers
+    supabase/                   SSR-klienter
+    ai/menu.ts                  Claude-prompt + Zod-validering
+    ica/                        Handla API-client (väntar på riktig endpoints)
+    activity.ts                 logActivity()
+    activity-labels.ts          client-safe verb-labels
+    auth-pin.ts                 PIN/actor cookies + HOUSEHOLD_ID
+    storage-classify.ts         skafferi/kyl/frys-mappning
+    store-layout.ts             Maxi Häggvik-gångordning
+    seeds/hector-family.ts      preset
+    utils.ts                    helpers (cn, normalizeName, weekstart, etc.)
+  middleware.ts                 PIN+actor-gate
 ```
-
-## Datamodell — kärnan
-
-- `households` — Filip + Tine + barn = 1 rad
-- `household_members` — vem som har access (RLS-pivoten)
-- `diet_preferences` — allergier, dislikes, kost-typ per medlem
-- `pantry_items` — vad som finns hemma just nu
-- `always_have_items` — vad ni alltid har (filtreras alltid bort)
-- `recipes` + `recipe_ingredients` — sparade och AI-genererade recept
-- `meal_plans` + `meal_plan_entries` — veckomeny, en cell per dag×slot
-- `shopping_lists` + `shopping_list_items` — listan som genereras och synkas
-- `takeaway_log` — historik för balans-förslag
-- `ica_connections` — Mitt ICA-token per hushåll
-- `ica_articles` — delad cache av artikeldata
-
-Allt skyddat av RLS via `sondag.is_household_member(uuid)`.
-
-## Hur det funkar — en typisk vecka
-
-1. **Söndagskväll.** Filip öppnar `/vecka` och markerar fredag som takeaway (sushi).
-2. **Klickar "Generera vecka med AI".** Claude får hushållets preferenser, skafferiet, alltid-hemma-listan och takeaway-dagen. Returnerar 6 middagsrecept (fredag är takeaway). Recepten sparas, ingredienser slås ihop, dubletter dedupliceras.
-3. **Inköpslistan byggs automatiskt.** Items som matchar `always_have_items` eller finns i skafferiet markeras `have_at_home: true` och döljs från listan.
-4. **Filip granskar `/inkop`.** Markerar några items som "vi har redan hemma" (📌 om det är permanent → hamnar i `always_have_items`).
-5. **Klickar "Synka till handscannern".** Listan pushas till ICA via `handla.api.ica.se`. När Filip scannar in på ICA Maxi Sollentuna dyker den upp.
-
-## ICA-integrationen — vad du behöver veta
-
-### Vilket API
-ICA har inget officiellt publikt API, men har en stabil intern API (`handla.api.ica.se`) som deras egen Handla-app använder. Söndag använder samma endpoints. Detta är "tolererat men inte officiellt".
-
-### Inloggningsflödet
-1. Filip skriver in Mitt ICA-användarnamn + lösenord i `/installningar`.
-2. Söndag skickar `Basic auth` mot `api.ica.se/login/v2`.
-3. ICA svarar med en `AuthenticationTicket`-header — det är vår sessionstoken.
-4. Token sparas i `ica_connections` (TODO: kryptera via Supabase Vault i prod).
-5. Token är giltig i ungefär 90 dagar.
-
-### Sync-flödet
-1. Söndag bygger en `IcaShoppingList` med `OfflineId` = vårt list-UUID.
-2. POST till `/api/user/offlineshoppinglists/{OfflineId}` med `AuthenticationTicket`-header.
-3. Listan dyker upp i ICA Handla-appen och i handscannern (samma backend).
-
-### Risker
-- ICA kan ändra sitt privata API utan förvarning. Strukturen i `src/lib/ica/` är isolerad så det är en fil att fixa.
-- Vid permanent breaking change finns fallback: exportera till QR/sharelink i ICA Handla-formatet.
-
-## TODO efter MVP
-
-- [ ] Supabase Vault för ICA-credentials istället för plaintext
-- [ ] Streckkods-scan när du kommer hem (uppdatera `pantry_items` automatiskt)
-- [ ] Dela recept med Tine via realtime
-- [ ] PWA + iOS-installation
-- [ ] Receptlista + favoriter
-- [ ] Veckans budget och takeaway-balans
-- [ ] Generera barnvänliga frukost- och lunchförslag
 
 ## Brand
 
-Färgpalett, typografi och designprinciper följer **Filip Hector Brand Standard v1.0** (cream/espresso/rust, Fraunces/Manrope, lugn över brus). Se `src/app/globals.css`.
+Färgpalett, typografi och designprinciper följer **Filip Hector Brand Standard v1.0** (cream/espresso/rust, Fraunces/Manrope, lugn över brus). Se `src/app/globals.css` och `Filip Hector Brand Standard.md`.
+
+## TODO efter v0.13
+
+- ICA-sync på riktigt mot OAuth + apimgw-pub.ica.se enligt `mar-schmidt/ica-cli`
+- Push-notiser söndag morgon (planera-veckan-reminder)
+- Veckorapport: budget, kostnadsuppdelning, takeaway-balans
+- AI-bilder per recept
+- Säsongsanpassning i AI-prompten
+- Trippkalender (markera bortvecka → ingen menyplanering)
+- Per-medlems-betyg på recept (snitt → riktning)
