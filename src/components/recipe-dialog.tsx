@@ -29,6 +29,7 @@ interface Recipe {
   instructions: string[];
   source_url: string | null;
   ai_generated: boolean;
+  image_url?: string | null;
   rating?: number | null;
   rated_by?: string | null;
   rejected?: boolean;
@@ -91,6 +92,20 @@ export function RecipeDialog({
         className="bg-cream-light w-full md:max-w-2xl md:rounded-sm md:border md:border-espresso/15 max-h-[90dvh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Hero-bild */}
+        {recipe.image_url && (
+          <div className="relative w-full aspect-[4/3] overflow-hidden bg-cream-accent">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={recipe.image_url}
+              alt={recipe.title}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-cream-light/90 via-cream-light/0 to-transparent" />
+          </div>
+        )}
+
         {/* Header */}
         <div className="sticky top-0 z-10 bg-cream-light border-b border-espresso/15 px-6 py-4 flex items-start justify-between gap-4">
           <div className="flex-1">

@@ -78,6 +78,7 @@ export interface GenerateMenuInput {
   recentMeals?: { date: string; title: string; cuisine?: string | null; rating?: number | null }[];
   rejectedTitles?: string[];
   absences?: { date: string; slot: string; absent: string[] }[];
+  awayDates?: string[]; // ISO-datum då hela hushållet är borta
 }
 
 const SYSTEM_PROMPT = `Du är en svensk hushållskock som planerar veckomenyer för svenska familjer.
@@ -239,6 +240,16 @@ ${input.absences && input.absences.length
   : "(alla hemma hela veckan)"}
 
 När en medlem är BORTA en kväll behöver du INTE följa hens preferenser för just den måltiden. Speciellt: om Tine är borta kan du köra rött kött (smashburgare, högrevsbiff). Om Filip är borta kan du köra något extra Tine-vänligt.
+
+═══════════════════════════════════════
+BORTA-DAGAR (hela hushållet — hoppa över)
+═══════════════════════════════════════
+
+${input.awayDates && input.awayDates.length
+  ? input.awayDates.map((d) => `- ${d}`).join("\n")
+  : "(inga)"}
+
+För dessa datum: returnera entry med takeaway:true och takeaway_type:"borta" — inget recept ska planeras eller läggas på inköpslistan.
 
 ═══════════════════════════════════════
 TAKEAWAY-KVÄLLAR (planera INTE recept)

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { HOUSEHOLD_ID } from "@/lib/auth-pin";
 import { logActivity } from "@/lib/activity";
 import Anthropic from "@anthropic-ai/sdk";
+import { recipeImage } from "@/lib/ai/images";
 
 export const maxDuration = 60;
 export const runtime = "nodejs";
@@ -70,6 +71,13 @@ export async function POST(req: Request) {
   let recipe;
   try { recipe = JSON.parse(match[1]); } catch { return NextResponse.json({ error: "Kunde inte parsa receptet" }, { status: 502 }); }
 
+  const img = recipeImage({
+    title: recipe.title,
+    description: recipe.description,
+    cuisine: recipe.cuisine,
+    tags: recipe.tags ?? [],
+  });
+
   const { data: saved } = await supabase
     .from("sondag_recipes")
     .insert({
@@ -86,6 +94,9 @@ export async function POST(req: Request) {
       ai_generated: false,
       saved: true,
       source_url: body.url,
+      image_url: img.url,
+      image_prompt: img.prompt,
+      image_seed: img.seed,
     })
     .select()
     .single();

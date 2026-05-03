@@ -53,6 +53,15 @@ interface Recipe {
   ingredients: Ingredient[];
 }
 
+function imageThumb(url: string | null | undefined, size = 80): string | null {
+  if (!url) return null;
+  // Pollinations stöder query-params för att resize:a — vi tar en mindre version till veckogriden
+  if (url.includes("image.pollinations.ai")) {
+    return url.replace(/width=\d+/, `width=${size}`).replace(/height=\d+/, `height=${size}`);
+  }
+  return url;
+}
+
 interface Entry {
   id: string;
   date: string;
@@ -132,22 +141,36 @@ export function WeekGrid({
                   ) : entry?.recipes ? (
                     <button
                       onClick={() => entry.recipes && setShowRecipe({ recipe: entry.recipes, date: formatDateISO(day), slot })}
-                      className="text-left w-full group"
+                      className="text-left w-full group flex gap-2 items-start"
                     >
-                      <p className="text-sm font-medium leading-snug group-hover:text-rust transition">
-                        {entry.recipes.title}
-                      </p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        {(entry.recipes.prep_minutes || entry.recipes.cook_minutes) && (
-                          <span className="text-[10px] text-ink-soft tabular-nums">
-                            {(entry.recipes.prep_minutes ?? 0) + (entry.recipes.cook_minutes ?? 0)} min
-                          </span>
-                        )}
-                        {entry.recipes.rating ? (
-                          <span className="text-[10px] text-rust tabular-nums flex items-center gap-0.5">
-                            {"★".repeat(entry.recipes.rating)}
-                          </span>
-                        ) : null}
+                      {(() => {
+                        const t = imageThumb(entry.recipes.image_url, 56);
+                        return t ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={t}
+                            alt=""
+                            className="w-12 h-12 object-cover rounded-sm border border-espresso/10 shrink-0"
+                            loading="lazy"
+                          />
+                        ) : null;
+                      })()}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium leading-snug group-hover:text-rust transition">
+                          {entry.recipes.title}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {(entry.recipes.prep_minutes || entry.recipes.cook_minutes) && (
+                            <span className="text-[10px] text-ink-soft tabular-nums">
+                              {(entry.recipes.prep_minutes ?? 0) + (entry.recipes.cook_minutes ?? 0)} min
+                            </span>
+                          )}
+                          {entry.recipes.rating ? (
+                            <span className="text-[10px] text-rust tabular-nums">
+                              {"★".repeat(entry.recipes.rating)}
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
                     </button>
                   ) : entry?.custom_title ? (

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { HOUSEHOLD_ID } from "@/lib/auth-pin";
 import { logActivity } from "@/lib/activity";
 import Anthropic from "@anthropic-ai/sdk";
+import { recipeImage, drinkImage } from "@/lib/ai/images";
 
 export const maxDuration = 60;
 export const runtime = "nodejs";
@@ -172,6 +173,14 @@ interface CourseData {
 }
 
 async function saveDrink(supabase: Awaited<ReturnType<typeof createClient>>, d: PreDrinkData): Promise<string | null> {
+  const img = drinkImage({
+    name: d.name,
+    description: d.description,
+    base_spirit: d.base_spirit,
+    glass_type: d.glass_type,
+    garnish: d.garnish,
+  });
+  void img; // drinks-tabellen har inga image-kolumner än, kan läggas till senare
   const { data: saved } = await supabase
     .from("sondag_drinks")
     .insert({
@@ -198,6 +207,12 @@ async function saveDrink(supabase: Awaited<ReturnType<typeof createClient>>, d: 
 }
 
 async function saveRecipe(supabase: Awaited<ReturnType<typeof createClient>>, r: CourseData, servings: number): Promise<string | null> {
+  const img = recipeImage({
+    title: r.title,
+    description: r.description,
+    cuisine: r.cuisine,
+    tags: r.tags ?? [],
+  });
   const { data: saved } = await supabase
     .from("sondag_recipes")
     .insert({
@@ -212,6 +227,9 @@ async function saveRecipe(supabase: Awaited<ReturnType<typeof createClient>>, r:
       tags: r.tags ?? [],
       instructions: r.instructions ?? [],
       ai_generated: true,
+      image_url: img.url,
+      image_prompt: img.prompt,
+      image_seed: img.seed,
     })
     .select()
     .single();

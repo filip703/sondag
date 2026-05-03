@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { generateWeekMenu } from "@/lib/ai/menu";
+import { recipeImage } from "@/lib/ai/images";
 import { normalizeName } from "@/lib/utils";
 import { logActivity } from "@/lib/activity";
 
@@ -101,6 +102,27 @@ export async function POST(req: Request) {
     .eq("rejected", true);
   const rejectedTitles = (rejected ?? []).map((r) => r.title);
 
+  // Trippkalender: dagar då hushållet är borta — AI hoppar dem
+  const weekEnd = new Date(plan.week_start);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  const weekEndIso = weekEnd.toISOString().slice(0, 10);
+  const { data: trips } = await supabase
+    .from("sondag_trip_periods")
+    .select("start_date, end_date")
+    .eq("household_id", plan.household_id)
+    .lte("start_date", weekEndIso)
+    .gte("end_date", plan.week_start);
+
+  const awayDates: string[] = [];
+  for (const t of trips ?? []) {
+    const start = new Date(t.start_date);
+    const end = new Date(t.end_date);
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const iso = d.toISOString().slice(0, 10);
+      if (iso >= plan.week_start && iso <= weekEndIso) awayDates.push(iso);
+    }
+  }
+
   let week;
   try {
     week = await generateWeekMenu({
@@ -138,6 +160,7 @@ export async function POST(req: Request) {
       recentMeals,
       rejectedTitles,
       absences,
+      awayDates,
     });
   } catch (e) {
     console.error(e);
@@ -164,6 +187,13 @@ export async function POST(req: Request) {
     }
     if (!entry.recipe) continue;
 
+    const img = recipeImage({
+      title: entry.recipe.title,
+      description: entry.recipe.description,
+      cuisine: entry.recipe.cuisine,
+      tags: entry.recipe.tags,
+    });
+
     const { data: recipe } = await supabase
       .from("sondag_recipes")
       .insert({
@@ -179,6 +209,9 @@ export async function POST(req: Request) {
         instructions: entry.recipe.instructions,
         ai_generated: true,
         ai_prompt_context: { week_start: plan.week_start },
+        image_url: img.url,
+        image_prompt: img.prompt,
+        image_seed: img.seed,
       })
       .select()
       .single();

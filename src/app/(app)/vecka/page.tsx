@@ -6,6 +6,7 @@ import { GenerateMenuButton } from "@/components/generate-menu-button";
 import { WeekSwitcher } from "@/components/week-switcher";
 import { ImportRecipeButton } from "@/components/import-recipe-button";
 import { FestButton } from "@/components/fest-dialog";
+import { TripBar } from "@/components/trip-bar";
 import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
@@ -52,12 +53,13 @@ export default async function VeckaPage({
     .select("*")
     .eq("meal_plan_id", plan!.id);
 
+  // Hämta trippkalendern parallellt
   const recipeIds = (entries ?? []).map((e) => e.recipe_id).filter((x): x is string => !!x);
-  const [{ data: recipes }, { data: members }, { data: ingredients }] = await Promise.all([
+  const [{ data: recipes }, { data: members }, { data: ingredients }, { data: trips }] = await Promise.all([
     recipeIds.length
       ? supabase
           .from("sondag_recipes")
-          .select("id, title, description, image_url, prep_minutes, cook_minutes, servings, cuisine, difficulty, tags, instructions, source_url, ai_generated, rating, rated_by, rejected")
+          .select("id, title, description, image_url, image_prompt, image_seed, prep_minutes, cook_minutes, servings, cuisine, difficulty, tags, instructions, source_url, ai_generated, rating, rated_by, rejected")
           .in("id", recipeIds)
       : Promise.resolve({ data: [] as Array<{ id: string; title: string; description: string | null; image_url: string | null; prep_minutes: number | null; cook_minutes: number | null; servings: number; cuisine: string | null; difficulty: string | null; tags: string[]; instructions: string[]; source_url: string | null; ai_generated: boolean; rating: number | null; rated_by: string | null; rejected: boolean }> }),
     supabase
@@ -72,6 +74,12 @@ export default async function VeckaPage({
           .in("recipe_id", recipeIds)
           .order("order_index", { ascending: true })
       : Promise.resolve({ data: [] as Array<{ recipe_id: string; name: string; quantity: number | null; unit: string | null; category: string | null; optional: boolean; order_index: number }> }),
+    supabase
+      .from("sondag_trip_periods")
+      .select("id, start_date, end_date, title, notes")
+      .eq("household_id", household.household_id)
+      .gte("end_date", weekStartIso)
+      .order("start_date", { ascending: true }),
   ]);
 
   const ingredientsByRecipe = (ingredients ?? []).reduce<Record<string, typeof ingredients>>(
@@ -135,6 +143,7 @@ export default async function VeckaPage({
       <div className="mb-6 flex items-center gap-2 flex-wrap">
         <ImportRecipeButton />
         <FestButton />
+        <TripBar trips={trips ?? []} />
       </div>
 
       <WeekGrid days={days} entries={enrichedEntries} planId={plan!.id} members={members ?? []} />

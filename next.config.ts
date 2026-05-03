@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "assets.icanet.se" },
       { protocol: "https", hostname: "image.shop.ica.se" },
+      { protocol: "https", hostname: "image.pollinations.ai" },
     ],
   },
 };
