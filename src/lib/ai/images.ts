@@ -7,7 +7,7 @@
 // Pollinations som vi använde först rate-limitade aggressivt → bytte till "off" som default.
 // När Filip ger oss en Replicate- eller OpenAI-token, sätt IMAGE_PROVIDER=replicate i env.
 
-const PROVIDER = (process.env.IMAGE_PROVIDER ?? "off").toLowerCase();
+const PROVIDER = (process.env.IMAGE_PROVIDER ?? "pollinations").toLowerCase();
 const POLLINATIONS_BASE = "https://image.pollinations.ai/prompt";
 
 const STYLE_SUFFIX =
