@@ -8,9 +8,9 @@ const items = [
   { href: "/vecka", label: "Vecka" },
   { href: "/skafferi", label: "Skafferi" },
   { href: "/inkop", label: "Inköp" },
+  { href: "/bar", label: "Baren" },
   { href: "/familj", label: "Familjen" },
   { href: "/aktivitet", label: "Aktivitet" },
-  { href: "/installningar", label: "Inställningar" },
 ];
 
 export function AppNav() {

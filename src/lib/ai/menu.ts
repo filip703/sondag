@@ -75,6 +75,7 @@ export interface GenerateMenuInput {
   pantry: { name: string; quantity: number | null; unit: string | null }[];
   alwaysHave: string[];
   takeawayDays: { date: string; slot: string; type?: string }[];
+  recentMeals?: { date: string; title: string; cuisine?: string | null }[];
 }
 
 const SYSTEM_PROMPT = `Du är en svensk hushållskock som planerar veckomenyer för svenska familjer.
@@ -208,6 +209,16 @@ ${input.pantry.length ? input.pantry.map((p) => `- ${p.name}${p.quantity ? ` (${
 
 Antas alltid finnas hemma:
 ${input.alwaysHave.length ? input.alwaysHave.map((a) => `- ${a}`).join("\n") : "(salt, peppar, olja)"}
+
+═══════════════════════════════════════
+SENASTE 4 VECKORNA — UNDVIK UPPREPNING
+═══════════════════════════════════════
+
+${input.recentMeals && input.recentMeals.length
+  ? input.recentMeals.map((m) => `- ${m.date}: ${m.title}${m.cuisine ? ` (${m.cuisine})` : ""}`).join("\n")
+  : "(ingen historik än)"}
+
+Återanvänd inte exakta recept från ovan. Variera proteinkällor och kök så det inte blir samma som senast.
 
 ═══════════════════════════════════════
 TAKEAWAY-KVÄLLAR (planera INTE recept)

@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient, getCurrentHousehold } from "@/lib/supabase/server";
-import { startOfWeek, formatDateISO, weekdayName, shortDate } from "@/lib/utils";
+import { startOfWeek, formatDateISO, shortDate } from "@/lib/utils";
 import { WeekGrid } from "@/components/week-grid";
 import { GenerateMenuButton } from "@/components/generate-menu-button";
+import { WeekSwitcher } from "@/components/week-switcher";
 import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,9 @@ export default async function VeckaPage({
     ? new Date(params.vecka)
     : startOfWeek(new Date());
   const weekStartIso = formatDateISO(weekStart);
+  const isCurrentWeek = formatDateISO(startOfWeek(new Date())) === weekStartIso;
+  const prevWeek = new Date(weekStart); prevWeek.setDate(prevWeek.getDate() - 7);
+  const nextWeek = new Date(weekStart); nextWeek.setDate(nextWeek.getDate() + 7);
 
   const supabase = await createClient();
 
@@ -51,25 +55,51 @@ export default async function VeckaPage({
     return d;
   });
 
+  // Vecka-nummer enligt ISO 8601
+  const weekNumber = getISOWeek(weekStart);
+
   return (
     <div>
-      <div className="flex items-end justify-between mb-10">
-        <div>
-          <p className="eyebrow mb-3">Vecka</p>
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
+        <div className="flex-1">
+          <p className="eyebrow mb-3">
+            Vecka {weekNumber}
+            {isCurrentWeek && (
+              <span className="ml-2 inline-block px-2 py-0.5 bg-rust text-cream text-[10px] rounded-sm normal-case tracking-normal">
+                denna vecka
+              </span>
+            )}
+          </p>
           <h1 className="text-4xl md:text-5xl">
             {shortDate(weekStart)} <em className="text-rust">—</em>{" "}
             {shortDate(days[6])}
           </h1>
           <p className="text-sm text-ink-soft mt-3">
-            Frukost, lunch och middag för fyra. Markera takeaway där det passar.
+            Frukost, lunch och middag för fyra. Markera takeaway eller skriv "gryta" så fixar AI:n.
           </p>
         </div>
-        <Suspense>
-          <GenerateMenuButton planId={plan!.id} />
-        </Suspense>
+        <div className="flex items-end gap-3">
+          <WeekSwitcher
+            currentIso={weekStartIso}
+            prevIso={formatDateISO(prevWeek)}
+            nextIso={formatDateISO(nextWeek)}
+            isCurrentWeek={isCurrentWeek}
+          />
+          <Suspense>
+            <GenerateMenuButton planId={plan!.id} />
+          </Suspense>
+        </div>
       </div>
 
       <WeekGrid days={days} entries={entries ?? []} planId={plan!.id} />
     </div>
   );
+}
+
+function getISOWeek(d: Date): number {
+  const date = new Date(d);
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7));
+  const week1 = new Date(date.getFullYear(), 0, 4);
+  return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
 }

@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import { weekdayName, formatDateISO } from "@/lib/utils";
 import { setEntryAction } from "@/app/actions/meal-plan";
 import { cn } from "@/lib/utils";
-import { UtensilsCrossed, ShoppingBag } from "lucide-react";
+import { ShoppingBag, Sparkles } from "lucide-react";
+import { QuickAddDialog } from "./quick-add-dialog";
 
 type Slot = "frukost" | "lunch" | "middag";
 const SLOTS: Slot[] = ["frukost", "lunch", "middag"];
@@ -32,7 +33,7 @@ export function WeekGrid({
   planId: string;
 }) {
   const [isPending, startTransition] = useTransition();
-  const [editing, setEditing] = useState<string | null>(null);
+  const [quickAdd, setQuickAdd] = useState<{ date: string; slot: Slot } | null>(null);
 
   function findEntry(date: Date, slot: Slot) {
     const iso = formatDateISO(date);
@@ -89,23 +90,43 @@ export function WeekGrid({
                     <p className="text-sm text-ink-soft/60">—</p>
                   )}
                 </div>
-                <button
-                  onClick={() => toggleTakeaway(day, slot, entry)}
-                  disabled={isPending}
-                  className={cn(
-                    "text-[10px] uppercase tracking-[0.18em] mt-2 self-start transition",
-                    entry?.takeaway
-                      ? "text-rust"
-                      : "text-ink-soft hover:text-rust"
+                <div className="flex items-center justify-between mt-2">
+                  <button
+                    onClick={() => toggleTakeaway(day, slot, entry)}
+                    disabled={isPending}
+                    className={cn(
+                      "text-[10px] uppercase tracking-[0.18em] transition",
+                      entry?.takeaway
+                        ? "text-rust"
+                        : "text-ink-soft hover:text-rust"
+                    )}
+                  >
+                    {entry?.takeaway ? "↺ Laga själv" : "Takeaway"}
+                  </button>
+                  {!entry?.takeaway && (
+                    <button
+                      onClick={() => setQuickAdd({ date: formatDateISO(day), slot })}
+                      title="Lägg till med AI"
+                      className="text-ink-soft hover:text-rust transition"
+                    >
+                      <Sparkles size={11} />
+                    </button>
                   )}
-                >
-                  {entry?.takeaway ? "↺ Laga själv" : "Takeaway"}
-                </button>
+                </div>
               </div>
             );
           })}
         </div>
       ))}
+
+      {quickAdd && (
+        <QuickAddDialog
+          planId={planId}
+          date={quickAdd.date}
+          slot={quickAdd.slot}
+          onClose={() => setQuickAdd(null)}
+        />
+      )}
     </div>
   );
 }

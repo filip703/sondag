@@ -56,6 +56,36 @@ export async function POST(req: Request) {
     .select("display_name")
     .eq("household_id", plan.household_id);
 
+  // Mat-historik: senaste 28 dagarna
+  const fourWeeksAgo = new Date(plan.week_start);
+  fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+  const fourWeeksAgoIso = fourWeeksAgo.toISOString().slice(0, 10);
+
+  const { data: recentEntries } = await supabase
+    .from("sondag_meal_plan_entries")
+    .select("date, recipe_id, custom_title")
+    .gte("date", fourWeeksAgoIso)
+    .lt("date", plan.week_start)
+    .not("recipe_id", "is", null)
+    .order("date", { ascending: false });
+
+  const recentRecipeIds = (recentEntries ?? []).map((e) => e.recipe_id).filter((x): x is string => !!x);
+  const { data: recentRecipes } = recentRecipeIds.length
+    ? await supabase
+        .from("sondag_recipes")
+        .select("id, title, cuisine")
+        .in("id", recentRecipeIds)
+    : { data: [] as Array<{ id: string; title: string; cuisine: string | null }> };
+
+  const recipeMap = new Map((recentRecipes ?? []).map((r) => [r.id, r]));
+  const recentMeals = (recentEntries ?? [])
+    .map((e) => {
+      const r = e.recipe_id ? recipeMap.get(e.recipe_id) : null;
+      return r ? { date: e.date, title: r.title, cuisine: r.cuisine } : null;
+    })
+    .filter((x): x is { date: string; title: string; cuisine: string | null } => !!x)
+    .slice(0, 30);
+
   let week;
   try {
     week = await generateWeekMenu({
@@ -90,6 +120,7 @@ export async function POST(req: Request) {
       pantry: pantry ?? [],
       alwaysHave: (alwaysHave ?? []).map((a) => a.display_name),
       takeawayDays,
+      recentMeals,
     });
   } catch (e) {
     console.error(e);
