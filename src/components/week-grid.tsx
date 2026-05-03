@@ -6,6 +6,7 @@ import { setEntryAction, setAbsenceAction } from "@/app/actions/meal-plan";
 import { cn } from "@/lib/utils";
 import { ShoppingBag, Sparkles, Users } from "lucide-react";
 import { QuickAddDialog } from "./quick-add-dialog";
+import { RecipeDialog } from "./recipe-dialog";
 import { useRouter } from "next/navigation";
 
 const COLOR_MAP: Record<string, string> = {
@@ -22,6 +23,33 @@ interface Member { id: string; name: string; avatar_color: string }
 type Slot = "frukost" | "lunch" | "middag";
 const SLOTS: Slot[] = ["frukost", "lunch", "middag"];
 
+interface Ingredient {
+  recipe_id: string;
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  category: string | null;
+  optional: boolean;
+  order_index: number;
+}
+
+interface Recipe {
+  id: string;
+  title: string;
+  description: string | null;
+  image_url: string | null;
+  prep_minutes: number | null;
+  cook_minutes: number | null;
+  servings: number;
+  cuisine: string | null;
+  difficulty: string | null;
+  tags: string[];
+  instructions: string[];
+  source_url: string | null;
+  ai_generated: boolean;
+  ingredients: Ingredient[];
+}
+
 interface Entry {
   id: string;
   date: string;
@@ -33,7 +61,7 @@ interface Entry {
   takeaway_vendor: string | null;
   takeaway_cost: number | null;
   absent_member_names: string[] | null;
-  recipes?: { id: string; title: string; image_url: string | null; prep_minutes: number | null; cook_minutes: number | null } | null;
+  recipes?: Recipe | null;
 }
 
 export function WeekGrid({
@@ -49,6 +77,7 @@ export function WeekGrid({
 }) {
   const router = useRouter();
   const [absenceFor, setAbsenceFor] = useState<{ date: string; slot: Slot } | null>(null);
+  const [showRecipe, setShowRecipe] = useState<Recipe | null>(null);
   const [isPending, startTransition] = useTransition();
   const [quickAdd, setQuickAdd] = useState<{ date: string; slot: Slot } | null>(null);
 
@@ -98,9 +127,19 @@ export function WeekGrid({
                       {entry.takeaway_vendor || entry.takeaway_type || "Takeaway"}
                     </p>
                   ) : entry?.recipes ? (
-                    <p className="text-sm font-medium leading-snug">
-                      {entry.recipes.title}
-                    </p>
+                    <button
+                      onClick={() => entry.recipes && setShowRecipe(entry.recipes)}
+                      className="text-left w-full group"
+                    >
+                      <p className="text-sm font-medium leading-snug group-hover:text-rust transition">
+                        {entry.recipes.title}
+                      </p>
+                      {(entry.recipes.prep_minutes || entry.recipes.cook_minutes) && (
+                        <p className="text-[10px] text-ink-soft mt-0.5 tabular-nums">
+                          {(entry.recipes.prep_minutes ?? 0) + (entry.recipes.cook_minutes ?? 0)} min
+                        </p>
+                      )}
+                    </button>
                   ) : entry?.custom_title ? (
                     <p className="text-sm leading-snug">{entry.custom_title}</p>
                   ) : (
@@ -171,6 +210,10 @@ export function WeekGrid({
           slot={quickAdd.slot}
           onClose={() => setQuickAdd(null)}
         />
+      )}
+
+      {showRecipe && (
+        <RecipeDialog recipe={showRecipe} onClose={() => setShowRecipe(null)} />
       )}
 
       {absenceFor && (

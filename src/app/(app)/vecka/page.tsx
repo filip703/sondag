@@ -52,18 +52,38 @@ export default async function VeckaPage({
     .eq("meal_plan_id", plan!.id);
 
   const recipeIds = (entries ?? []).map((e) => e.recipe_id).filter((x): x is string => !!x);
-  const [{ data: recipes }, { data: members }] = await Promise.all([
+  const [{ data: recipes }, { data: members }, { data: ingredients }] = await Promise.all([
     recipeIds.length
-      ? supabase.from("sondag_recipes").select("id, title, image_url, prep_minutes, cook_minutes").in("id", recipeIds)
-      : Promise.resolve({ data: [] as { id: string; title: string; image_url: string | null; prep_minutes: number | null; cook_minutes: number | null }[] }),
+      ? supabase
+          .from("sondag_recipes")
+          .select("id, title, description, image_url, prep_minutes, cook_minutes, servings, cuisine, difficulty, tags, instructions, source_url, ai_generated")
+          .in("id", recipeIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; title: string; description: string | null; image_url: string | null; prep_minutes: number | null; cook_minutes: number | null; servings: number; cuisine: string | null; difficulty: string | null; tags: string[]; instructions: string[]; source_url: string | null; ai_generated: boolean }> }),
     supabase
       .from("sondag_family_members")
       .select("id, name, avatar_color")
       .eq("household_id", household.household_id)
       .order("created_at", { ascending: true }),
+    recipeIds.length
+      ? supabase
+          .from("sondag_recipe_ingredients")
+          .select("recipe_id, name, quantity, unit, category, optional, order_index")
+          .in("recipe_id", recipeIds)
+          .order("order_index", { ascending: true })
+      : Promise.resolve({ data: [] as Array<{ recipe_id: string; name: string; quantity: number | null; unit: string | null; category: string | null; optional: boolean; order_index: number }> }),
   ]);
 
-  const recipeById = new Map((recipes ?? []).map((r) => [r.id, r]));
+  const ingredientsByRecipe = (ingredients ?? []).reduce<Record<string, typeof ingredients>>(
+    (acc, ing) => {
+      (acc[ing.recipe_id] ||= []).push(ing);
+      return acc;
+    },
+    {}
+  );
+
+  const recipeById = new Map(
+    (recipes ?? []).map((r) => [r.id, { ...r, ingredients: ingredientsByRecipe[r.id] ?? [] }])
+  );
   const enrichedEntries = (entries ?? []).map((e) => ({
     ...e,
     recipes: e.recipe_id ? recipeById.get(e.recipe_id) ?? null : null,
