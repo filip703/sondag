@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { generateWeekMenu } from "@/lib/ai/menu";
 import { normalizeName } from "@/lib/utils";
+import { logActivity } from "@/lib/activity";
 
 export async function POST(req: Request) {
   const user = await getCurrentUser();
@@ -162,6 +163,14 @@ export async function POST(req: Request) {
   // Generera inköpslista från receptens ingredienser
   await rebuildShoppingList(supabase, plan.household_id, plan_id);
 
+  await logActivity({
+    verb: "generated_menu",
+    object_type: "meal_plan",
+    object_id: plan_id,
+    object_name: `vecka ${plan.week_start}`,
+    payload: { recipes: week.entries.filter((e) => e.recipe).length },
+  });
+
   return NextResponse.json({ ok: true, notes: week.notes });
 }
 
@@ -170,12 +179,21 @@ async function rebuildShoppingList(
   householdId: string,
   planId: string
 ) {
-  // Hämta alla recept-ingredienser för veckans entries
+  // Hämta alla entries med recept för veckan, och ingredienser separat
+  // (views har ingen FK för PostgREST att JOIN:a på)
   const { data: entries } = await supabase
     .from("sondag_meal_plan_entries")
-    .select("recipe_id, recipes(recipe_ingredients(name, quantity, unit, category))")
+    .select("recipe_id")
     .eq("meal_plan_id", planId)
     .not("recipe_id", "is", null);
+
+  const recipeIds = (entries ?? []).map((e) => e.recipe_id).filter((x): x is string => !!x);
+  const { data: ingredients } = recipeIds.length
+    ? await supabase
+        .from("sondag_recipe_ingredients")
+        .select("recipe_id, name, quantity, unit, category")
+        .in("recipe_id", recipeIds)
+    : { data: [] as Array<{ recipe_id: string; name: string; quantity: number | null; unit: string | null; category: string | null }> };
 
   // Hämta always-have för filtrering
   const { data: alwaysHave } = await supabase
@@ -194,16 +212,13 @@ async function rebuildShoppingList(
   // Aggregera per (name, unit)
   type Agg = { name: string; quantity: number | null; unit: string | null; category: string | null };
   const agg = new Map<string, Agg>();
-  for (const entry of entries ?? []) {
-    const ings = (entry.recipes as { recipe_ingredients?: Agg[] } | null)?.recipe_ingredients ?? [];
-    for (const ing of ings) {
-      const key = `${normalizeName(ing.name)}::${ing.unit ?? ""}`;
-      const existing = agg.get(key);
-      if (existing) {
-        existing.quantity = (existing.quantity ?? 0) + (ing.quantity ?? 0);
-      } else {
-        agg.set(key, { ...ing });
-      }
+  for (const ing of ingredients ?? []) {
+    const key = `${normalizeName(ing.name)}::${ing.unit ?? ""}`;
+    const existing = agg.get(key);
+    if (existing) {
+      existing.quantity = (existing.quantity ?? 0) + (ing.quantity ?? 0);
+    } else {
+      agg.set(key, { name: ing.name, quantity: ing.quantity, unit: ing.unit, category: ing.category });
     }
   }
 

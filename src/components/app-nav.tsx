@@ -9,6 +9,7 @@ const items = [
   { href: "/skafferi", label: "Skafferi" },
   { href: "/inkop", label: "Inköp" },
   { href: "/familj", label: "Familjen" },
+  { href: "/aktivitet", label: "Aktivitet" },
   { href: "/installningar", label: "Inställningar" },
 ];
 

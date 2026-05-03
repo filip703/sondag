@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { logActivity } from "@/lib/activity";
 
 interface SetEntryArgs {
   plan_id: string;
@@ -18,7 +19,6 @@ interface SetEntryArgs {
 
 export async function setEntryAction(args: SetEntryArgs) {
   const supabase = await createClient();
-
   const { error } = await supabase
     .from("sondag_meal_plan_entries")
     .upsert(
@@ -36,8 +36,22 @@ export async function setEntryAction(args: SetEntryArgs) {
       },
       { onConflict: "meal_plan_id,date,slot" }
     );
-
   if (error) throw new Error(error.message);
+
+  if (args.takeaway === true) {
+    await logActivity({
+      verb: "marked_takeaway",
+      object_type: "meal_entry",
+      object_name: `${args.date} ${args.slot}`,
+      payload: { type: args.takeaway_type, vendor: args.takeaway_vendor },
+    });
+  } else if (args.takeaway === false) {
+    await logActivity({
+      verb: "cleared_takeaway",
+      object_type: "meal_entry",
+      object_name: `${args.date} ${args.slot}`,
+    });
+  }
   revalidatePath("/vecka");
 }
 

@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { normalizeName } from "@/lib/utils";
+import { logActivity } from "@/lib/activity";
 
 interface AddArgs {
   household_id: string;
@@ -14,15 +15,38 @@ interface AddArgs {
 
 export async function addPantryItemAction(args: AddArgs) {
   const supabase = await createClient();
-  const { error } = await supabase.from("sondag_pantry_items").insert(args);
+  const { data, error } = await supabase
+    .from("sondag_pantry_items")
+    .insert(args)
+    .select()
+    .single();
   if (error) throw new Error(error.message);
+  await logActivity({
+    verb: "added_pantry",
+    object_type: "pantry_item",
+    object_id: data?.id,
+    object_name: args.name,
+  });
   revalidatePath("/skafferi");
+  revalidatePath("/aktivitet");
 }
 
 export async function removePantryItemAction(id: string) {
   const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("sondag_pantry_items")
+    .select("name")
+    .eq("id", id)
+    .maybeSingle();
   await supabase.from("sondag_pantry_items").delete().eq("id", id);
+  await logActivity({
+    verb: "removed_pantry",
+    object_type: "pantry_item",
+    object_id: id,
+    object_name: existing?.name,
+  });
   revalidatePath("/skafferi");
+  revalidatePath("/aktivitet");
 }
 
 export async function rememberAlwaysHaveAction(args: {
@@ -42,12 +66,28 @@ export async function rememberAlwaysHaveAction(args: {
     },
     { onConflict: "household_id,name_normalized" }
   );
+  await logActivity({
+    verb: "remembered_always_have",
+    object_type: "always_have_item",
+    object_name: args.name,
+  });
   revalidatePath("/skafferi");
   revalidatePath("/inkop");
 }
 
 export async function removeAlwaysHaveAction(id: string) {
   const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("sondag_always_have_items")
+    .select("display_name")
+    .eq("id", id)
+    .maybeSingle();
   await supabase.from("sondag_always_have_items").delete().eq("id", id);
+  await logActivity({
+    verb: "removed_always_have",
+    object_type: "always_have_item",
+    object_id: id,
+    object_name: existing?.display_name,
+  });
   revalidatePath("/skafferi");
 }
