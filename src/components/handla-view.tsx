@@ -2,13 +2,14 @@
 
 import { useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, RefreshCw, ShoppingCart, Store, Trash2, Home } from "lucide-react";
+import { Check, Copy, RefreshCw, ShoppingCart, Store, Trash2, Home, PackageCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { aisleOrder, aisleLabel } from "@/lib/store-layout";
 import {
   toggleCheckedAction,
   removeShoppingItemAction,
   moveToHomeAction,
+  finishShoppingAction,
 } from "@/app/actions/shopping-list";
 
 interface Item {
@@ -93,6 +94,18 @@ export function HandlaView({
     });
   }
 
+  const [finishMsg, setFinishMsg] = useState<string | null>(null);
+  function finishShopping() {
+    if (done === 0) return;
+    if (!confirm(`Flytta ${done} avbockade varor till skafferi/kyl/frys och starta en ny lista?`)) return;
+    setFinishMsg(null);
+    startTransition(async () => {
+      const res = await finishShoppingAction();
+      setFinishMsg(`${res.moved} varor flyttade hem`);
+      router.refresh();
+    });
+  }
+
   async function copyToClipboard() {
     const text = Object.entries(grouped)
       .map(([cat, list]) => {
@@ -156,24 +169,36 @@ export function HandlaView({
             style={{ width: `${Math.max(pct, 2)}%` }}
           />
         </div>
-        <div className="flex gap-2 mt-3">
+        <div className="flex gap-2 mt-3 flex-wrap">
           <button
             onClick={copyToClipboard}
-            className="btn btn-ghost flex-1 justify-center text-xs"
+            className="btn btn-ghost text-xs"
           >
             <Copy size={12} />
-            {copied ? "Kopierat!" : "Kopiera till ICA Handla"}
+            {copied ? "Kopierat!" : "Kopiera"}
           </button>
           <button
             onClick={syncToIca}
             disabled={isSyncing}
-            className="btn btn-primary flex-1 justify-center text-xs"
+            className="btn btn-ghost text-xs"
           >
             <RefreshCw size={12} className={isSyncing ? "animate-spin" : ""} />
             {isSyncing ? "Synkar..." : "Synka"}
           </button>
+          {done > 0 && (
+            <button
+              onClick={finishShopping}
+              disabled={isPending}
+              className="btn btn-primary text-xs flex-1 justify-center"
+              title="Flytta alla avbockade varor till hemma och starta ny lista"
+            >
+              <PackageCheck size={12} />
+              Klar — flytta {done} hem
+            </button>
+          )}
         </div>
         {syncMsg && <p className="text-xs text-ink-soft mt-2">{syncMsg}</p>}
+        {finishMsg && <p className="text-xs text-forest mt-2">{finishMsg}</p>}
         {lastSynced && (
           <p className="text-[10px] text-ink-soft mt-1">
             Senast synkad {new Date(lastSynced).toLocaleString("sv-SE", { dateStyle: "short", timeStyle: "short" })}

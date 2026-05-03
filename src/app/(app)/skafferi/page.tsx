@@ -11,20 +11,13 @@ export default async function SkafferiPage() {
   if (!household) redirect("/installningar");
 
   const supabase = await createClient();
-  const [{ data: items }, { data: alwaysHave }] = await Promise.all([
-    supabase
-      .from("sondag_pantry_items")
-      .select("*")
-      .eq("household_id", household.household_id)
-      .order("storage", { ascending: true })
-      .order("category", { ascending: true })
-      .order("name", { ascending: true }),
-    supabase
-      .from("sondag_always_have_items")
-      .select("*")
-      .eq("household_id", household.household_id)
-      .order("display_name", { ascending: true }),
-  ]);
+  const { data: items } = await supabase
+    .from("sondag_pantry_items")
+    .select("*")
+    .eq("household_id", household.household_id)
+    .order("storage", { ascending: true })
+    .order("category", { ascending: true })
+    .order("name", { ascending: true });
 
   return (
     <div>
@@ -49,7 +42,6 @@ export default async function SkafferiPage() {
       <PantryList
         householdId={household.household_id}
         items={items ?? []}
-        alwaysHave={alwaysHave ?? []}
       />
     </div>
   );

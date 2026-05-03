@@ -5,10 +5,9 @@ import { useRouter } from "next/navigation";
 import {
   addPantryItemAction,
   removePantryItemAction,
-  removeAlwaysHaveAction,
   movePantryItemAction,
 } from "@/app/actions/pantry";
-import { Trash2, Plus, Pin, Refrigerator, Snowflake, Package, ArrowRightLeft } from "lucide-react";
+import { Trash2, Plus, Refrigerator, Snowflake, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Storage = "skafferi" | "kyl" | "frys";
@@ -23,12 +22,6 @@ interface PantryItem {
   expiry_date: string | null;
 }
 
-interface AlwaysHave {
-  id: string;
-  display_name: string;
-  category: string | null;
-}
-
 const TABS: { key: Storage; label: string; Icon: typeof Package }[] = [
   { key: "skafferi", label: "Skafferi", Icon: Package },
   { key: "kyl", label: "Kyl", Icon: Refrigerator },
@@ -38,11 +31,9 @@ const TABS: { key: Storage; label: string; Icon: typeof Package }[] = [
 export function PantryList({
   householdId,
   items,
-  alwaysHave,
 }: {
   householdId: string;
   items: PantryItem[];
-  alwaysHave: AlwaysHave[];
 }) {
   const [activeTab, setActiveTab] = useState<Storage>("skafferi");
   const [name, setName] = useState("");
@@ -74,7 +65,10 @@ export function PantryList({
         category: category || null,
         storage: activeTab,
       });
-      setName(""); setQuantity(""); setUnit(""); setCategory("");
+      setName("");
+      setQuantity("");
+      setUnit("");
+      setCategory("");
       router.refresh();
     });
   }
@@ -93,14 +87,6 @@ export function PantryList({
     });
   }
 
-  function removeAlways(id: string) {
-    startTransition(async () => {
-      await removeAlwaysHaveAction(id);
-      router.refresh();
-    });
-  }
-
-  // Gruppera per kategori i aktiv tab
   const grouped = visible.reduce<Record<string, PantryItem[]>>((acc, it) => {
     const key = it.category || "Övrigt";
     (acc[key] ||= []).push(it);
@@ -108,84 +94,88 @@ export function PantryList({
   }, {});
 
   return (
-    <div className="grid md:grid-cols-3 gap-10">
-      <div className="md:col-span-2">
-        {/* Tabs */}
-        <div className="flex border-b border-espresso/15 mb-8">
-          {TABS.map(({ key, label, Icon }) => {
-            const count = tabbed[key].length;
-            const active = key === activeTab;
-            return (
-              <button
-                key={key}
-                onClick={() => setActiveTab(key)}
+    <div>
+      {/* Tabs */}
+      <div className="flex border-b border-espresso/15 mb-8">
+        {TABS.map(({ key, label, Icon }) => {
+          const count = tabbed[key].length;
+          const active = key === activeTab;
+          return (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={cn(
+                "px-5 py-3 flex items-center gap-2 text-sm transition border-b-2 -mb-px",
+                active
+                  ? "border-rust text-espresso"
+                  : "border-transparent text-ink-soft hover:text-espresso"
+              )}
+            >
+              <Icon size={14} />
+              <span>{label}</span>
+              <span
                 className={cn(
-                  "px-5 py-3 flex items-center gap-2 text-sm transition border-b-2 -mb-px",
-                  active
-                    ? "border-rust text-espresso"
-                    : "border-transparent text-ink-soft hover:text-espresso"
+                  "text-xs tabular-nums",
+                  active ? "text-rust" : "text-ink-soft/60"
                 )}
               >
-                <Icon size={14} />
-                <span>{label}</span>
-                <span className={cn("text-xs tabular-nums", active ? "text-rust" : "text-ink-soft/60")}>
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Lägg till */}
-        <div className="card p-5 mb-8">
-          <p className="eyebrow mb-4">
-            Lägg till i {TABS.find((t) => t.key === activeTab)?.label.toLowerCase()}
-          </p>
-          <div className="grid grid-cols-12 gap-3">
-            <input
-              className="col-span-12 md:col-span-5 bg-transparent border-b border-espresso/30 px-1 py-2 focus:outline-none focus:border-espresso"
-              placeholder="t.ex. Pasta"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && add()}
-            />
-            <input
-              className="col-span-4 md:col-span-2 bg-transparent border-b border-espresso/30 px-1 py-2 focus:outline-none focus:border-espresso"
-              placeholder="500"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-            />
-            <input
-              className="col-span-4 md:col-span-2 bg-transparent border-b border-espresso/30 px-1 py-2 focus:outline-none focus:border-espresso"
-              placeholder="g"
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-            />
-            <input
-              className="col-span-4 md:col-span-2 bg-transparent border-b border-espresso/30 px-1 py-2 focus:outline-none focus:border-espresso"
-              placeholder="kategori"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            />
-            <button
-              onClick={add}
-              disabled={isPending || !name.trim()}
-              className="btn btn-primary col-span-12 md:col-span-1 justify-center"
-            >
-              <Plus size={14} />
+                {count}
+              </span>
             </button>
-          </div>
+          );
+        })}
+      </div>
+
+      <div className="card p-5 mb-8 max-w-2xl">
+        <p className="eyebrow mb-4">
+          Lägg till i {TABS.find((t) => t.key === activeTab)?.label.toLowerCase()}
+        </p>
+        <div className="grid grid-cols-12 gap-3">
+          <input
+            className="col-span-12 md:col-span-5 bg-transparent border-b border-espresso/30 px-1 py-2 focus:outline-none focus:border-espresso"
+            placeholder="t.ex. Pasta"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && add()}
+          />
+          <input
+            className="col-span-4 md:col-span-2 bg-transparent border-b border-espresso/30 px-1 py-2 focus:outline-none focus:border-espresso"
+            placeholder="500"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+          />
+          <input
+            className="col-span-4 md:col-span-2 bg-transparent border-b border-espresso/30 px-1 py-2 focus:outline-none focus:border-espresso"
+            placeholder="g"
+            value={unit}
+            onChange={(e) => setUnit(e.target.value)}
+          />
+          <input
+            className="col-span-4 md:col-span-2 bg-transparent border-b border-espresso/30 px-1 py-2 focus:outline-none focus:border-espresso"
+            placeholder="kategori"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          />
+          <button
+            onClick={add}
+            disabled={isPending || !name.trim()}
+            className="btn btn-primary col-span-12 md:col-span-1 justify-center"
+          >
+            <Plus size={14} />
+          </button>
         </div>
+      </div>
 
-        {Object.entries(grouped).length === 0 && (
-          <p className="text-sm text-ink-soft italic">
-            Inget i {TABS.find((t) => t.key === activeTab)?.label.toLowerCase()} än.
-            Markera "finns hemma" på inköpslistan eller scanna en streckkod.
-          </p>
-        )}
+      {Object.entries(grouped).length === 0 && (
+        <p className="text-sm text-ink-soft italic">
+          Inget i {TABS.find((t) => t.key === activeTab)?.label.toLowerCase()} än.
+          Markera "finns hemma" på inköpslistan eller scanna en streckkod.
+        </p>
+      )}
 
+      <div className="grid md:grid-cols-2 gap-x-10 gap-y-1">
         {Object.entries(grouped).map(([cat, list]) => (
-          <div key={cat} className="mb-8">
+          <div key={cat} className="mb-6">
             <div className="divider mb-3">
               <p className="eyebrow">{cat}</p>
             </div>
@@ -199,21 +189,23 @@ export function PantryList({
                   <div className="flex items-center gap-3">
                     {(it.quantity || it.unit) && (
                       <span className="text-xs text-ink-soft tabular-nums">
-                        {it.quantity}{it.unit && ` ${it.unit}`}
+                        {it.quantity}
+                        {it.unit && ` ${it.unit}`}
                       </span>
                     )}
-                    {/* Flytta till annan lagring */}
                     <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition">
-                      {TABS.filter((t) => t.key !== activeTab).map(({ key, label, Icon }) => (
-                        <button
-                          key={key}
-                          onClick={() => move(it.id, key)}
-                          title={`Flytta till ${label.toLowerCase()}`}
-                          className="text-ink-soft hover:text-petrol p-1"
-                        >
-                          <Icon size={12} />
-                        </button>
-                      ))}
+                      {TABS.filter((t) => t.key !== activeTab).map(
+                        ({ key, label, Icon }) => (
+                          <button
+                            key={key}
+                            onClick={() => move(it.id, key)}
+                            title={`Flytta till ${label.toLowerCase()}`}
+                            className="text-ink-soft hover:text-petrol p-1"
+                          >
+                            <Icon size={12} />
+                          </button>
+                        )
+                      )}
                     </div>
                     <button
                       onClick={() => remove(it.id)}
@@ -228,39 +220,6 @@ export function PantryList({
           </div>
         ))}
       </div>
-
-      <aside>
-        <div className="divider mb-3">
-          <p className="eyebrow flex items-center gap-2">
-            <Pin size={11} className="text-rust" />
-            Alltid hemma
-          </p>
-        </div>
-        <p className="text-xs text-ink-soft mb-4">
-          Items här filtreras alltid bort från nya inköpslistor.
-        </p>
-        <ul>
-          {alwaysHave.length === 0 && (
-            <li className="text-xs text-ink-soft italic">
-              Markera "kom ihåg" på inköpslistan så hamnar de här.
-            </li>
-          )}
-          {alwaysHave.map((it) => (
-            <li
-              key={it.id}
-              className="flex items-center justify-between py-2 border-b border-espresso/10"
-            >
-              <span className="text-sm">{it.display_name}</span>
-              <button
-                onClick={() => removeAlways(it.id)}
-                className="text-ink-soft hover:text-burgundy transition"
-              >
-                <Trash2 size={12} />
-              </button>
-            </li>
-          ))}
-        </ul>
-      </aside>
     </div>
   );
 }

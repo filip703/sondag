@@ -142,6 +142,75 @@ export async function removeShoppingItemAction(itemId: string) {
 }
 
 /**
+ * Avsluta handlingen — flyttar alla avbockade items till hemma (rätt lagring),
+ * arkiverar listan och skapar en tom ny.
+ */
+export async function finishShoppingAction(): Promise<{ moved: number; new_list_id: string | null }> {
+  const supabase = await createClient();
+
+  const { data: list } = await supabase
+    .from("sondag_shopping_lists")
+    .select("*")
+    .in("status", ["active", "synced_to_ica"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!list) return { moved: 0, new_list_id: null };
+
+  const { data: checked } = await supabase
+    .from("sondag_shopping_list_items")
+    .select("*")
+    .eq("shopping_list_id", list.id)
+    .eq("checked", true);
+
+  let moved = 0;
+  if (checked && checked.length) {
+    const rows = checked.map((it) => ({
+      household_id: list.household_id,
+      name: it.name,
+      quantity: it.quantity,
+      unit: it.unit,
+      category: it.category,
+      storage: classifyStorage(it.category, it.name),
+      ica_ean: it.ica_ean,
+    }));
+    const { error } = await supabase.from("sondag_pantry_items").insert(rows);
+    if (!error) moved = rows.length;
+  }
+
+  // Arkivera den gamla listan
+  await supabase
+    .from("sondag_shopping_lists")
+    .update({ status: "completed", completed_at: new Date().toISOString() })
+    .eq("id", list.id);
+
+  // Skapa en ny tom lista
+  const { data: newList } = await supabase
+    .from("sondag_shopping_lists")
+    .insert({
+      household_id: list.household_id,
+      meal_plan_id: list.meal_plan_id,
+      name: "Veckohandling",
+    })
+    .select()
+    .single();
+
+  await logActivity({
+    verb: "marked_have_at_home",
+    object_type: "shopping_finished",
+    object_name: `${moved} varor flyttade hem`,
+    payload: { moved, list_id: list.id },
+  });
+
+  revalidatePath("/handla");
+  revalidatePath("/inkop");
+  revalidatePath("/skafferi");
+
+  return { moved, new_list_id: newList?.id ?? null };
+}
+
+/**
  * "Finns redan hemma" — flyttar varan från inköpslistan till skafferiet/kyl/frys.
  * Auto-klassar baserat på kategori om storage inte anges.
  */
