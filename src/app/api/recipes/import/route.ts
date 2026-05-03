@@ -4,6 +4,9 @@ import { HOUSEHOLD_ID } from "@/lib/auth-pin";
 import { logActivity } from "@/lib/activity";
 import Anthropic from "@anthropic-ai/sdk";
 
+export const maxDuration = 60;
+export const runtime = "nodejs";
+
 interface Body { url: string; addToPlan?: { plan_id: string; date: string; slot: string } }
 
 const SYSTEM = `Du extraherar svenska recept från råa HTML-sidor. Användaren ger dig text från en receptsida (koket.se, ica.se, alltommat.se, NYT Cooking, etc.). Du ska identifiera receptet och returnera strukturerad JSON.

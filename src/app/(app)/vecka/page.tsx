@@ -45,10 +45,29 @@ export default async function VeckaPage({
     plan = newPlan;
   }
 
+  // Hämta entries och recept parallellt
   const { data: entries } = await supabase
     .from("sondag_meal_plan_entries")
-    .select("*, recipes(id, title, image_url, prep_minutes, cook_minutes)")
+    .select("*")
     .eq("meal_plan_id", plan!.id);
+
+  const recipeIds = (entries ?? []).map((e) => e.recipe_id).filter((x): x is string => !!x);
+  const [{ data: recipes }, { data: members }] = await Promise.all([
+    recipeIds.length
+      ? supabase.from("sondag_recipes").select("id, title, image_url, prep_minutes, cook_minutes").in("id", recipeIds)
+      : Promise.resolve({ data: [] as { id: string; title: string; image_url: string | null; prep_minutes: number | null; cook_minutes: number | null }[] }),
+    supabase
+      .from("sondag_family_members")
+      .select("id, name, avatar_color")
+      .eq("household_id", household.household_id)
+      .order("created_at", { ascending: true }),
+  ]);
+
+  const recipeById = new Map((recipes ?? []).map((r) => [r.id, r]));
+  const enrichedEntries = (entries ?? []).map((e) => ({
+    ...e,
+    recipes: e.recipe_id ? recipeById.get(e.recipe_id) ?? null : null,
+  }));
 
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
@@ -96,7 +115,7 @@ export default async function VeckaPage({
         <ImportRecipeButton />
       </div>
 
-      <WeekGrid days={days} entries={entries ?? []} planId={plan!.id} />
+      <WeekGrid days={days} entries={enrichedEntries} planId={plan!.id} members={members ?? []} />
     </div>
   );
 }

@@ -63,3 +63,30 @@ export async function clearEntryAction(plan_id: string, date: string, slot: stri
     .match({ meal_plan_id: plan_id, date, slot });
   revalidatePath("/vecka");
 }
+
+export async function setAbsenceAction(args: {
+  plan_id: string;
+  date: string;
+  slot: string;
+  absent: string[];
+}) {
+  const supabase = await createClient();
+  await supabase
+    .from("sondag_meal_plan_entries")
+    .upsert(
+      {
+        meal_plan_id: args.plan_id,
+        date: args.date,
+        slot: args.slot,
+        absent_member_names: args.absent,
+      },
+      { onConflict: "meal_plan_id,date,slot" }
+    );
+  await logActivity({
+    verb: "edited_member",
+    object_type: "absence",
+    object_name: args.absent.length ? `${args.absent.join(", ")} borta ${args.date}` : `alla hemma ${args.date}`,
+    payload: { date: args.date, slot: args.slot, absent: args.absent },
+  });
+  revalidatePath("/vecka");
+}

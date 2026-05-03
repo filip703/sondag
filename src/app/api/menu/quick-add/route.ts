@@ -4,6 +4,9 @@ import { logActivity } from "@/lib/activity";
 import { HOUSEHOLD_ID } from "@/lib/auth-pin";
 import Anthropic from "@anthropic-ai/sdk";
 
+export const maxDuration = 60;
+export const runtime = "nodejs";
+
 interface Body {
   plan_id: string;
   date: string;

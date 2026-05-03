@@ -3,6 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { HOUSEHOLD_ID } from "@/lib/auth-pin";
 import Anthropic from "@anthropic-ai/sdk";
 
+export const maxDuration = 60;
+export const runtime = "nodejs";
+
 interface Body { prompt: string; meal_context?: string }
 
 const SYSTEM = `Du är Filips personliga bartender. Stil: adult tiki möter modern boutique hotel. Premium casual. Lounge terrace energy. Palma rooftop vibes.

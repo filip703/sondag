@@ -76,6 +76,7 @@ export interface GenerateMenuInput {
   alwaysHave: string[];
   takeawayDays: { date: string; slot: string; type?: string }[];
   recentMeals?: { date: string; title: string; cuisine?: string | null }[];
+  absences?: { date: string; slot: string; absent: string[] }[];
 }
 
 const SYSTEM_PROMPT = `Du är en svensk hushållskock som planerar veckomenyer för svenska familjer.
@@ -91,10 +92,12 @@ REGLER:
 - Bara middagar
 - Standard 4 portioner, justera om annat anges
 - Allergier ÄR ABSOLUTA — aldrig förhandlingsbart
-- Om en medlem inte äter en proteinkälla: använd den ALDRIG som huvudprotein
+- Om en medlem inte äter en proteinkälla: använd den ALDRIG som huvudprotein NÄR HEN ÄR HEMMA
+- Om en medlem är BORTA en specifik kväll: ignorera hens preferenser för just den måltiden (t.ex. om Tine är borta kan du köra rött kött)
 - Om en medlem är selektiv: planera så hens "safe components" finns separat på tallriken — tvinga aldrig ihop-rörda rätter
 - Återkommande veckorutiner (t.ex. "fredag = sushi") ska följas såvida inte takeaway-dag säger annat
 - Undvik upprepning: aldrig samma proteinkälla två dagar i rad
+- INKÖPSOPTIMERING: Återanvänd ingredienser över flera rätter samma vecka. T.ex. om du planerar tacos och smashburgare, använd HÖGREVSFÄRS som bas för båda — då räcker en stor packe och inte två. Andra exempel: kyckling till två rätter (wraps + pasta), lax till två rätter, samma ört/grönsak återkommer.
 - Veta vad som finns hemma: använd dessa ingredienser där det går
 - Svenska ingrediensnamn, metriska enheter, kategorier (kött, fisk, mejeri, frukt-grönt, skafferi, frys, bröd, snacks, dryck)
 
@@ -219,6 +222,16 @@ ${input.recentMeals && input.recentMeals.length
   : "(ingen historik än)"}
 
 Återanvänd inte exakta recept från ovan. Variera proteinkällor och kök så det inte blir samma som senast.
+
+═══════════════════════════════════════
+FRÅNVARO PER MÅLTID
+═══════════════════════════════════════
+
+${input.absences && input.absences.length
+  ? input.absences.map((a) => `- ${a.date} ${a.slot}: ${a.absent.join(", ")} är borta`).join("\n")
+  : "(alla hemma hela veckan)"}
+
+När en medlem är BORTA en kväll behöver du INTE följa hens preferenser för just den måltiden. Speciellt: om Tine är borta kan du köra rött kött (smashburgare, högrevsbiff). Om Filip är borta kan du köra något extra Tine-vänligt.
 
 ═══════════════════════════════════════
 TAKEAWAY-KVÄLLAR (planera INTE recept)

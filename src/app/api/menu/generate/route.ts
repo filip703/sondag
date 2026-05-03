@@ -4,6 +4,9 @@ import { generateWeekMenu } from "@/lib/ai/menu";
 import { normalizeName } from "@/lib/utils";
 import { logActivity } from "@/lib/activity";
 
+export const maxDuration = 60;
+export const runtime = "nodejs";
+
 export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -21,15 +24,19 @@ export async function POST(req: Request) {
     .single();
   if (planErr || !plan) return NextResponse.json({ error: "Plan saknas" }, { status: 404 });
 
-  // Befintliga entries (takeaway-markeringar)
+  // Befintliga entries (takeaway + frånvaro)
   const { data: existingEntries } = await supabase
     .from("sondag_meal_plan_entries")
-    .select("date, slot, takeaway, takeaway_type")
+    .select("date, slot, takeaway, takeaway_type, absent_member_names")
     .eq("meal_plan_id", plan_id);
 
   const takeawayDays = (existingEntries ?? [])
     .filter((e) => e.takeaway)
     .map((e) => ({ date: e.date, slot: e.slot, type: e.takeaway_type ?? undefined }));
+
+  const absences = (existingEntries ?? [])
+    .filter((e) => Array.isArray(e.absent_member_names) && e.absent_member_names.length > 0)
+    .map((e) => ({ date: e.date, slot: e.slot, absent: e.absent_member_names as string[] }));
 
   // Hushållsprofil
   const { data: profile } = await supabase
@@ -121,6 +128,7 @@ export async function POST(req: Request) {
       alwaysHave: (alwaysHave ?? []).map((a) => a.display_name),
       takeawayDays,
       recentMeals,
+      absences,
     });
   } catch (e) {
     console.error(e);
