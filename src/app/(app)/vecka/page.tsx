@@ -4,6 +4,7 @@ import { startOfWeek, formatDateISO, shortDate } from "@/lib/utils";
 import { WeekGrid } from "@/components/week-grid";
 import { GenerateMenuButton } from "@/components/generate-menu-button";
 import { WeekSwitcher } from "@/components/week-switcher";
+import { ImportRecipeButton } from "@/components/import-recipe-button";
 import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
@@ -89,6 +90,10 @@ export default async function VeckaPage({
             <GenerateMenuButton planId={plan!.id} />
           </Suspense>
         </div>
+      </div>
+
+      <div className="mb-6">
+        <ImportRecipeButton />
       </div>
 
       <WeekGrid days={days} entries={entries ?? []} planId={plan!.id} />

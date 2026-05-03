@@ -6,11 +6,11 @@ import { cn } from "@/lib/utils";
 
 const items = [
   { href: "/vecka", label: "Vecka" },
+  { href: "/handla", label: "Handla" },
   { href: "/skafferi", label: "Skafferi" },
   { href: "/inkop", label: "Inköp" },
   { href: "/bar", label: "Baren" },
   { href: "/familj", label: "Familjen" },
-  { href: "/aktivitet", label: "Aktivitet" },
 ];
 
 export function AppNav() {

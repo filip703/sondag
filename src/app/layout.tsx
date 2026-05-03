@@ -26,7 +26,24 @@ const jetbrains = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Söndag — veckomeny för familjen",
   description: "Planera veckans mat. Synka inköpslistan till ICA. Glöm aldrig vad som finns hemma.",
-  themeColor: "#F4ECDF",
+  applicationName: "Söndag",
+  appleWebApp: {
+    capable: true,
+    title: "Söndag",
+    statusBarStyle: "default",
+  },
+  formatDetection: { telephone: false },
+};
+
+export const viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F4ECDF" },
+    { media: "(prefers-color-scheme: dark)", color: "#2A2520" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover" as const,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
