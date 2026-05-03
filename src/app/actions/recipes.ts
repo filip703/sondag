@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { logActivity } from "@/lib/activity";
 import { getActiveActor } from "@/lib/auth-pin";
+import { recipeImage } from "@/lib/ai/images";
 
 export async function rateRecipeAction(recipeId: string, rating: number) {
   if (rating < 1 || rating > 5) throw new Error("Betyg måste vara 1-5");
@@ -37,6 +38,73 @@ export async function rateRecipeAction(recipeId: string, rating: number) {
 
   revalidatePath("/vecka");
   revalidatePath("/aktivitet");
+}
+
+/**
+ * Säkerställ att ett recept har en bild. Genereras lazy om saknas.
+ * Returnerar image_url. Idempotent — om bild finns sedan tidigare gör inget.
+ */
+export async function ensureRecipeImageAction(recipeId: string): Promise<string | null> {
+  const supabase = await createClient();
+
+  const { data: r } = await supabase
+    .from("sondag_recipes")
+    .select("id, title, description, cuisine, tags, image_url")
+    .eq("id", recipeId)
+    .maybeSingle();
+
+  if (!r) return null;
+  if (r.image_url) return r.image_url;
+
+  const img = recipeImage({
+    title: r.title,
+    description: r.description,
+    cuisine: r.cuisine,
+    tags: r.tags ?? [],
+  });
+
+  await supabase
+    .from("sondag_recipes")
+    .update({
+      image_url: img.url,
+      image_prompt: img.prompt,
+      image_seed: img.seed,
+    })
+    .eq("id", recipeId);
+
+  return img.url;
+}
+
+/**
+ * Regenerera bild med ny seed (om Filip inte gillar nuvarande).
+ */
+export async function regenerateRecipeImageAction(recipeId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data: r } = await supabase
+    .from("sondag_recipes")
+    .select("id, title, description, cuisine, tags")
+    .eq("id", recipeId)
+    .maybeSingle();
+  if (!r) return null;
+
+  const img = recipeImage(
+    { title: r.title, description: r.description, cuisine: r.cuisine, tags: r.tags ?? [] },
+    { seed: Math.floor(Math.random() * 1_000_000) }
+  );
+  await supabase
+    .from("sondag_recipes")
+    .update({ image_url: img.url, image_prompt: img.prompt, image_seed: img.seed })
+    .eq("id", recipeId);
+
+  await logActivity({
+    verb: "edited_member",
+    object_type: "recipe_image",
+    object_id: recipeId,
+    object_name: `Ny bild på "${r.title}"`,
+  });
+
+  revalidatePath("/vecka");
+  return img.url;
 }
 
 export async function deleteRecipeFromPlanAction(args: {

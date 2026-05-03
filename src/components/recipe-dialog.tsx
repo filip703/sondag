@@ -1,10 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { X, Clock, Users, ChefHat, Link2, Sparkles, Star, Trash2, Ban } from "lucide-react";
+import { X, Clock, Users, ChefHat, Link2, Sparkles, Star, Trash2, Ban, RefreshCw, ImageOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { rateRecipeAction, deleteRecipeFromPlanAction } from "@/app/actions/recipes";
+import {
+  rateRecipeAction,
+  deleteRecipeFromPlanAction,
+  ensureRecipeImageAction,
+  regenerateRecipeImageAction,
+} from "@/app/actions/recipes";
 
 interface Ingredient {
   recipe_id: string;
@@ -49,7 +54,35 @@ export function RecipeDialog({
   const [hover, setHover] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
   const [showDelete, setShowDelete] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(recipe.image_url ?? null);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const router = useRouter();
+
+  // Lazy-generera bild om receptet saknar en (för gamla recept som genererades före v0.15)
+  useEffect(() => {
+    if (!imageUrl && recipe.id) {
+      setImageLoading(true);
+      ensureRecipeImageAction(recipe.id)
+        .then((url) => {
+          if (url) setImageUrl(url);
+        })
+        .finally(() => setImageLoading(false));
+    }
+  }, [recipe.id, imageUrl]);
+
+  function regenerate() {
+    setImageError(false);
+    setImageLoading(true);
+    startTransition(async () => {
+      const url = await regenerateRecipeImageAction(recipe.id);
+      if (url) {
+        // Lägg till en cache-buster så browsern hämtar nya bilden
+        setImageUrl(`${url}&_=${Date.now()}`);
+      }
+      setImageLoading(false);
+    });
+  }
 
   function rate(value: number) {
     setRating(value);
@@ -93,18 +126,52 @@ export function RecipeDialog({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Hero-bild */}
-        {recipe.image_url && (
-          <div className="relative w-full aspect-[4/3] overflow-hidden bg-cream-accent">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+        <div className="relative w-full aspect-[4/3] overflow-hidden bg-gradient-to-br from-cream-accent to-cream-light">
+          {imageLoading && !imageError && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                <Sparkles size={20} className="text-rust mx-auto mb-2 animate-pulse" />
+                <p className="eyebrow">Bilden bryggs...</p>
+              </div>
+            </div>
+          )}
+          {imageUrl && !imageError && (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={recipe.image_url}
+              src={imageUrl}
               alt={recipe.title}
-              className="w-full h-full object-cover"
-              loading="lazy"
+              className={cn(
+                "w-full h-full object-cover transition-opacity duration-500",
+                imageLoading ? "opacity-0" : "opacity-100"
+              )}
+              onLoad={() => setImageLoading(false)}
+              onError={() => {
+                setImageError(true);
+                setImageLoading(false);
+              }}
+              loading="eager"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-cream-light/90 via-cream-light/0 to-transparent" />
-          </div>
-        )}
+          )}
+          {imageError && (
+            <div className="absolute inset-0 flex items-center justify-center text-ink-soft">
+              <div className="text-center">
+                <ImageOff size={20} className="mx-auto mb-2 opacity-50" />
+                <p className="text-xs">Bilden kunde inte laddas</p>
+              </div>
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-cream-light/90 via-cream-light/0 to-transparent pointer-events-none" />
+          {imageUrl && !imageLoading && (
+            <button
+              onClick={regenerate}
+              disabled={isPending}
+              className="absolute top-3 right-3 bg-cream-light/80 backdrop-blur-sm text-espresso hover:bg-cream-light p-2 rounded-sm transition"
+              title="Generera ny bild"
+            >
+              <RefreshCw size={14} className={isPending ? "animate-spin" : ""} />
+            </button>
+          )}
+        </div>
 
         {/* Header */}
         <div className="sticky top-0 z-10 bg-cream-light border-b border-espresso/15 px-6 py-4 flex items-start justify-between gap-4">
