@@ -4,7 +4,7 @@ import { useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Copy, RefreshCw, ShoppingCart, Store, Trash2, Home, PackageCheck, X, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { aisleOrder, aisleLabel } from "@/lib/store-layout";
+import { aisleOrder, aisleLabel, aisleAccent } from "@/lib/store-layout";
 import {
   toggleCheckedAction,
   removeShoppingItemAction,
@@ -283,15 +283,21 @@ export function HandlaView({
           const catTotal = list.length;
           const catDone = list.filter((i) => i.checked).length;
           const allDone = catTotal > 0 && catDone === catTotal;
+          const accent = aisleAccent(cat);
           return (
-            <section key={cat} className={cn("mb-8", allDone && "opacity-50")}>
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="font-display text-xl">{aisleLabel(cat)}</h2>
+            <section key={cat} className={cn("mb-10", allDone && "opacity-50")}>
+              <div
+                className="flex items-baseline justify-between mb-3 pb-2 border-b-2"
+                style={{ borderColor: accent.hex }}
+              >
+                <h2 className={cn("font-display text-2xl italic", accent.text)}>
+                  {aisleLabel(cat)}
+                </h2>
                 <span className="text-xs text-ink-soft tabular-nums">
                   {catDone}/{catTotal}
                 </span>
               </div>
-              <div className="border-t border-espresso/15">
+              <div>
                 {list.map((item) => (
                   <div
                     key={item.id}

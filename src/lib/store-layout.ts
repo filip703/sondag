@@ -59,3 +59,27 @@ export function aisleLabel(category: string | null): string {
   if (!category) return "Övrigt";
   return AISLE_LABEL[category.toLowerCase()] ?? category;
 }
+
+// Subtil färgaccent per gångordning — för Handla-vyn
+export const AISLE_ACCENT: Record<string, { text: string; hex: string }> = {
+  "frukt-grönt": { text: "text-forest", hex: "#3A4A35" },
+  "bröd": { text: "text-camel", hex: "#C4A678" },
+  "mejeri": { text: "text-petrol", hex: "#2E5C6E" },
+  "kött": { text: "text-rust", hex: "#B5562B" },
+  "chark": { text: "text-rust", hex: "#B5562B" },
+  "fisk": { text: "text-petrol", hex: "#2E5C6E" },
+  "frys": { text: "text-petrol", hex: "#2E5C6E" },
+  "färdigmat": { text: "text-rust", hex: "#B5562B" },
+  "skafferi": { text: "text-camel", hex: "#C4A678" },
+  "kryddor": { text: "text-olive", hex: "#6B6B3A" },
+  "konserver": { text: "text-camel", hex: "#C4A678" },
+  "kaffe": { text: "text-burgundy", hex: "#6E2A2A" },
+  "dryck": { text: "text-petrol", hex: "#2E5C6E" },
+  "snacks": { text: "text-camel", hex: "#C4A678" },
+  "godis": { text: "text-burgundy", hex: "#6E2A2A" },
+};
+
+export function aisleAccent(category: string | null): { text: string; hex: string } {
+  if (!category) return { text: "text-ink-soft", hex: "#4A4138" };
+  return AISLE_ACCENT[category.toLowerCase()] ?? { text: "text-ink-soft", hex: "#4A4138" };
+}

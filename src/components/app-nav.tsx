@@ -8,15 +8,28 @@ import { Menu, X, CalendarDays, ShoppingCart, Package, Wine, Users, Activity, Se
 import { cn } from "@/lib/utils";
 
 const items = [
-  { href: "/vecka", label: "Vecka", desc: "Veckomeny + AI-planering", Icon: CalendarDays },
-  { href: "/handla", label: "Handla", desc: "Inköpslista i butiksordning", Icon: ShoppingCart },
-  { href: "/skafferi", label: "Skafferi", desc: "Vad finns hemma — skafferi/kyl/frys", Icon: Home },
-  { href: "/skap", label: "Skåp", desc: "Standardprovianten + bar", Icon: Package },
-  { href: "/bar", label: "Baren", desc: "Drinkar + AI-bartender", Icon: Wine },
-  { href: "/familj", label: "Familjen", desc: "Per-medlem-profiler", Icon: Users },
-  { href: "/aktivitet", label: "Aktivitet", desc: "Vem-gjorde-vad-historik", Icon: Activity },
-  { href: "/installningar", label: "Inställningar", desc: "ICA + preferenser", Icon: Settings },
+  { href: "/vecka", label: "Vecka", desc: "Veckomeny + AI-planering", Icon: CalendarDays, accent: "text-rust" },
+  { href: "/handla", label: "Handla", desc: "Inköpslista i butiksordning", Icon: ShoppingCart, accent: "text-olive" },
+  { href: "/skafferi", label: "Skafferi", desc: "Vad finns hemma — skafferi/kyl/frys", Icon: Home, accent: "text-camel" },
+  { href: "/skap", label: "Skåp", desc: "Standardprovianten + bar", Icon: Package, accent: "text-forest" },
+  { href: "/bar", label: "Baren", desc: "Drinkar + AI-bartender", Icon: Wine, accent: "text-petrol" },
+  { href: "/familj", label: "Familjen", desc: "Per-medlem-profiler", Icon: Users, accent: "text-burgundy" },
+  { href: "/aktivitet", label: "Aktivitet", desc: "Vem-gjorde-vad-historik", Icon: Activity, accent: "text-rust" },
+  { href: "/installningar", label: "Inställningar", desc: "ICA + preferenser", Icon: Settings, accent: "text-ink-soft" },
 ];
+
+function getHex(textClass: string): string {
+  const map: Record<string, string> = {
+    "text-rust": "#B5562B",
+    "text-petrol": "#2E5C6E",
+    "text-camel": "#C4A678",
+    "text-olive": "#6B6B3A",
+    "text-forest": "#3A4A35",
+    "text-burgundy": "#6E2A2A",
+    "text-ink-soft": "#4A4138",
+  };
+  return map[textClass] ?? "#B5562B";
+}
 
 export function AppNav() {
   const pathname = usePathname();
@@ -84,7 +97,7 @@ export function AppNav() {
           </button>
         </div>
         <ul className="flex-1 overflow-y-auto py-2">
-          {items.map(({ href, label, desc, Icon }) => {
+          {items.map(({ href, label, desc, Icon, accent }) => {
             const active = pathname?.startsWith(href);
             return (
               <li key={href}>
@@ -92,22 +105,18 @@ export function AppNav() {
                   href={href}
                   className={cn(
                     "flex items-start gap-4 px-6 py-4 hover:bg-cream-accent transition border-l-2",
-                    active
-                      ? "border-rust bg-cream-accent/40"
-                      : "border-transparent"
+                    active ? "bg-cream-accent/40" : "border-transparent"
                   )}
+                  style={{
+                    borderLeftColor: active ? getHex(accent) : "transparent",
+                  }}
                 >
                   <Icon
                     size={18}
-                    className={cn(
-                      "mt-0.5 shrink-0",
-                      active ? "text-rust" : "text-ink-soft"
-                    )}
+                    className={cn("mt-0.5 shrink-0", active ? accent : "text-ink-soft")}
                   />
                   <div>
-                    <p className={cn("font-medium", active && "text-rust")}>
-                      {label}
-                    </p>
+                    <p className={cn("font-medium", active && accent)}>{label}</p>
                     <p className="text-xs text-ink-soft mt-0.5">{desc}</p>
                   </div>
                 </Link>
