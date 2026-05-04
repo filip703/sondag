@@ -177,12 +177,12 @@ export function WeekGrid({
                     <p className="text-sm text-ink-soft/60">—</p>
                   )}
                 </div>
-                <div className="flex items-center justify-between mt-2 gap-2">
+                <div className="flex items-center justify-between mt-2 gap-1">
                   <button
                     onClick={() => toggleTakeaway(day, slot, entry)}
                     disabled={isPending}
                     className={cn(
-                      "text-[10px] uppercase tracking-[0.18em] transition",
+                      "text-[10px] uppercase tracking-[0.18em] transition px-2 py-2 -mx-2 min-h-[36px]",
                       entry?.takeaway
                         ? "text-rust"
                         : "text-ink-soft hover:text-rust"
@@ -190,9 +190,9 @@ export function WeekGrid({
                   >
                     {entry?.takeaway ? "↺ Laga själv" : "Takeaway"}
                   </button>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-0.5">
                     {entry?.absent_member_names && entry.absent_member_names.length > 0 && (
-                      <div className="flex -space-x-1.5">
+                      <div className="flex -space-x-1.5 mr-1">
                         {entry.absent_member_names.map((name) => {
                           const m = members.find((mm) => mm.name === name);
                           return (
@@ -213,17 +213,19 @@ export function WeekGrid({
                     <button
                       onClick={() => setAbsenceFor({ date: formatDateISO(day), slot })}
                       title="Vem är borta"
-                      className="text-ink-soft hover:text-rust transition"
+                      className="icon-btn icon-btn-rust"
+                      style={{ minWidth: 36, minHeight: 36 }}
                     >
-                      <Users size={11} />
+                      <Users size={14} />
                     </button>
                     {!entry?.takeaway && (
                       <button
                         onClick={() => setQuickAdd({ date: formatDateISO(day), slot })}
                         title="Lägg till med AI"
-                        className="text-ink-soft hover:text-rust transition"
+                        className="icon-btn icon-btn-rust"
+                        style={{ minWidth: 36, minHeight: 36 }}
                       >
-                        <Sparkles size={11} />
+                        <Sparkles size={14} />
                       </button>
                     )}
                   </div>

@@ -186,32 +186,31 @@ export function PantryList({
                   className="flex items-center justify-between py-2.5 border-b border-espresso/10 group"
                 >
                   <span className="text-sm">{it.name}</span>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1">
                     {(it.quantity || it.unit) && (
-                      <span className="text-xs text-ink-soft tabular-nums">
+                      <span className="text-xs text-ink-soft tabular-nums mr-1">
                         {it.quantity}
                         {it.unit && ` ${it.unit}`}
                       </span>
                     )}
-                    <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition">
-                      {TABS.filter((t) => t.key !== activeTab).map(
-                        ({ key, label, Icon }) => (
-                          <button
-                            key={key}
-                            onClick={() => move(it.id, key)}
-                            title={`Flytta till ${label.toLowerCase()}`}
-                            className="text-ink-soft hover:text-petrol p-1"
-                          >
-                            <Icon size={12} />
-                          </button>
-                        )
-                      )}
-                    </div>
+                    {TABS.filter((t) => t.key !== activeTab).map(
+                      ({ key, label, Icon }) => (
+                        <button
+                          key={key}
+                          onClick={() => move(it.id, key)}
+                          title={`Flytta till ${label.toLowerCase()}`}
+                          className="icon-btn icon-btn-rust"
+                        >
+                          <Icon size={16} />
+                        </button>
+                      )
+                    )}
                     <button
                       onClick={() => remove(it.id)}
-                      className="text-ink-soft hover:text-burgundy transition"
+                      title="Ta bort"
+                      className="icon-btn icon-btn-danger"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </li>

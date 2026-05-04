@@ -53,6 +53,12 @@
   h3 { font-style: italic; font-weight: 400; }
   hr { border: 0; border-top: 1px solid rgba(42, 37, 32, 0.15); }
   button { cursor: pointer; }
+  /* Tydlig keyboard-navigation */
+  *:focus-visible {
+    outline: 2px solid var(--color-rust);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
 }
 
 @layer components {
@@ -77,14 +83,30 @@
   .btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
-    padding: 0.65rem 1.1rem;
+    padding: 0.75rem 1.1rem;
+    min-height: 44px;
     border-radius: 2px;
     font-weight: 500;
     font-size: 0.875rem;
     transition: all 150ms ease;
     border: 1px solid transparent;
   }
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.5rem;
+    color: var(--color-ink-soft);
+    transition: color 150ms ease, background 150ms ease;
+    border-radius: 2px;
+  }
+  .icon-btn:hover { color: var(--color-espresso); }
+  .icon-btn-rust:hover { color: var(--color-rust); }
+  .icon-btn-danger:hover { color: var(--color-burgundy); background: rgba(110, 42, 42, 0.05); }
   .btn-primary {
     background: var(--color-espresso);
     color: var(--color-cream);

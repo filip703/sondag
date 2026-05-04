@@ -274,17 +274,17 @@ export function HandlaView({
                       onClick={() => moveToHome(item)}
                       disabled={isPending}
                       title="Finns redan hemma → flytta till skafferi/kyl/frys"
-                      className="p-2 text-ink-soft hover:text-petrol active:bg-cream-accent rounded-sm shrink-0"
+                      className="icon-btn icon-btn-rust shrink-0"
                     >
-                      <Home size={16} />
+                      <Home size={18} />
                     </button>
                     <button
                       onClick={() => remove(item)}
                       disabled={isPending}
                       title="Ta bort"
-                      className="p-2 text-ink-soft hover:text-burgundy active:bg-cream-accent rounded-sm shrink-0"
+                      className="icon-btn icon-btn-danger shrink-0"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 ))}

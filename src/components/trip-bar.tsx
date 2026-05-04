@@ -40,10 +40,11 @@ export function TripBar({ trips }: { trips: Trip[] }) {
                   await removeTripAction(t.id);
                   router.refresh();
                 }}
-                className="text-ink-soft hover:text-burgundy"
+                className="icon-btn icon-btn-danger -my-2 -mr-1"
+                style={{ minWidth: 32, minHeight: 32 }}
                 aria-label="Ta bort resa"
               >
-                <X size={11} />
+                <X size={14} />
               </button>
             </li>
           ))}

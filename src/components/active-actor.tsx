@@ -37,12 +37,12 @@ export function ActiveActor() {
   return (
     <button
       onClick={switchActor}
-      className="flex items-center gap-2 text-xs text-ink-soft hover:text-espresso transition group"
+      className="flex items-center gap-2 px-2 text-xs text-ink-soft hover:text-espresso transition group min-h-[44px]"
       title="Byt användare"
     >
       <span
         className={cn(
-          "w-6 h-6 rounded-full flex items-center justify-center text-cream text-xs font-display",
+          "w-8 h-8 rounded-full flex items-center justify-center text-cream text-sm font-display",
           COLOR_MAP[name] ?? "bg-rust"
         )}
       >
