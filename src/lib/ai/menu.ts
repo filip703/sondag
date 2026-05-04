@@ -78,7 +78,28 @@ export interface GenerateMenuInput {
   recentMeals?: { date: string; title: string; cuisine?: string | null; rating?: number | null }[];
   rejectedTitles?: string[];
   absences?: { date: string; slot: string; absent: string[] }[];
-  awayDates?: string[]; // ISO-datum då hela hushållet är borta
+  awayDates?: string[];
+}
+
+const SEASON_BY_MONTH: Record<number, { name: string; ingredients: string[] }> = {
+  1: { name: "januari", ingredients: ["grönkål", "rotfrukter", "rödbeta", "kålrot", "vitlök", "äpple", "lök"] },
+  2: { name: "februari", ingredients: ["rotfrukter", "kål", "purjolök", "blodgrapefrukt"] },
+  3: { name: "mars", ingredients: ["sparris (importerad)", "ramslök", "tidiga primörer", "purjolök"] },
+  4: { name: "april", ingredients: ["sparris", "rabarber", "ramslök", "primörer", "spenat"] },
+  5: { name: "maj", ingredients: ["sparris", "jordgubbar", "rabarber", "primörpotatis", "rädisor", "ramslök", "spenat"] },
+  6: { name: "juni", ingredients: ["jordgubbar", "rabarber", "primörpotatis", "färska bondbönor", "färsk koriander/basilika", "blomkål"] },
+  7: { name: "juli", ingredients: ["sommarkål", "tomater", "majs", "körsbär", "blåbär", "potatis", "färska örter"] },
+  8: { name: "augusti", ingredients: ["tomater", "majs", "lingon", "kantareller (om man har tur)", "potatis", "kål"] },
+  9: { name: "september", ingredients: ["kantareller", "äpple", "päron", "lingon", "höstkål", "rotfrukter", "vilt"] },
+  10: { name: "oktober", ingredients: ["pumpa", "kål", "rotfrukter", "äpple", "vilt", "champinjoner"] },
+  11: { name: "november", ingredients: ["rotfrukter", "kål", "vilt", "lingon", "äpple"] },
+  12: { name: "december", ingredients: ["rotfrukter", "kål", "höstpäron", "lingon", "skinka", "lutfisk"] },
+};
+
+function seasonHint(weekStart: string): { month: string; ingredients: string[] } {
+  const d = new Date(weekStart);
+  const m = d.getMonth() + 1;
+  return { month: SEASON_BY_MONTH[m].name, ingredients: SEASON_BY_MONTH[m].ingredients };
 }
 
 const SYSTEM_PROMPT = `Du är en svensk hushållskock som planerar veckomenyer för svenska familjer.
@@ -177,6 +198,12 @@ ${m.notes ? `- Anteckningar: ${m.notes}` : ""}`.trim();
   return `Planera veckans middagar för måndag ${days[0]} till söndag ${days[6]}.
 
 ANTAL PORTIONER: ${input.servings}
+
+═══════════════════════════════════════
+SÄSONG
+═══════════════════════════════════════
+
+${(() => { const s = seasonHint(input.weekStart); return `Aktuell månad: ${s.month}. Svenska säsongs-ingredienser denna tid:\n${s.ingredients.map((i) => `- ${i}`).join("\n")}\n\nVäv in minst 1-2 av dessa i veckans rätter där det passar smakprofilen — speciellt på söndagens lite mer ambitiösa middag.`; })()}
 
 ═══════════════════════════════════════
 HUSHÅLLETS MATSTIL

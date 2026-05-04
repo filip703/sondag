@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { weekdayName, formatDateISO } from "@/lib/utils";
 import { setEntryAction, setAbsenceAction } from "@/app/actions/meal-plan";
 import { cn } from "@/lib/utils";
-import { ShoppingBag, Sparkles, Users } from "lucide-react";
+import { ShoppingBag, Sparkles, Users, Wine } from "lucide-react";
 import { QuickAddDialog } from "./quick-add-dialog";
 import { RecipeDialog } from "./recipe-dialog";
 import { useRouter } from "next/navigation";
@@ -60,6 +60,13 @@ function imageThumb(url: string | null | undefined, size = 80): string | null {
   return url;
 }
 
+interface PairedDrink {
+  id: string;
+  name: string;
+  base_spirit: string | null;
+  glass_type: string | null;
+}
+
 interface Entry {
   id: string;
   date: string;
@@ -72,6 +79,7 @@ interface Entry {
   takeaway_cost: number | null;
   absent_member_names: string[] | null;
   recipes?: Recipe | null;
+  drink?: PairedDrink | null;
 }
 
 export function WeekGrid({
@@ -169,6 +177,12 @@ export function WeekGrid({
                             </span>
                           ) : null}
                         </div>
+                        {entry.drink && (
+                          <p className="text-[10px] text-petrol mt-1 flex items-center gap-1">
+                            <Wine size={9} />
+                            {entry.drink.name}
+                          </p>
+                        )}
                       </div>
                     </button>
                   ) : entry?.custom_title ? (

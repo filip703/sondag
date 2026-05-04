@@ -4,9 +4,60 @@ import { generateWeekMenu } from "@/lib/ai/menu";
 import { recipeImage } from "@/lib/ai/images";
 import { normalizeName } from "@/lib/utils";
 import { logActivity } from "@/lib/activity";
+import Anthropic from "@anthropic-ai/sdk";
 
 export const maxDuration = 60;
 export const runtime = "nodejs";
+
+interface DrinkSuggestion {
+  name: string;
+  description: string;
+  base_spirit: string;
+  glass_type: string;
+  garnish: string;
+  prep_minutes: number;
+  ingredients?: Array<{ name: string; quantity: number | null; unit: string | null; category: string | null }>;
+  instructions?: string[];
+}
+
+const DRINK_PAIRING_SYSTEM = `Du är Filips bartender. Stil: adult tiki, premium casual, boutique hotel. INGA mousserande drinkar, inga söta klubbdrinkar.
+
+Filips smak: rom, tequila (favoriter), gin/bourbon ibland. Älskar citrus, grapefruktbeska, tonic, orgeat, lime, honung.
+
+Returnera ENDAST JSON i kodblock med EN drink som passar maten:
+\`\`\`json
+{
+  "name": "Drinknamn",
+  "description": "1-2 meningar",
+  "base_spirit": "rom|tequila|gin|bourbon|mezcal",
+  "glass_type": "coupé|rocks|highball",
+  "garnish": "...",
+  "prep_minutes": 5,
+  "ingredients": [{"name":"Rom","quantity":4.5,"unit":"cl","category":"spirit"}],
+  "instructions": ["Steg 1","Steg 2"]
+}
+\`\`\``;
+
+async function pairDrink(meal: { title: string; cuisine: string | null; tags: string[] }): Promise<DrinkSuggestion | null> {
+  try {
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+    const message = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1500,
+      system: DRINK_PAIRING_SYSTEM,
+      messages: [{
+        role: "user",
+        content: `Föreslå en drink som passar att servera till "${meal.title}"${meal.cuisine ? ` (${meal.cuisine})` : ""}${meal.tags.length ? ` — tags: ${meal.tags.join(", ")}` : ""}.`,
+      }],
+    });
+    const text = message.content.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join("\n");
+    const match = text.match(/```json\s*([\s\S]+?)\s*```/) || text.match(/(\{[\s\S]+\})/);
+    if (!match) return null;
+    return JSON.parse(match[1]) as DrinkSuggestion;
+  } catch {
+    return null;
+  }
+}
 
 export async function POST(req: Request) {
   const user = await getCurrentUser();
@@ -244,12 +295,69 @@ export async function POST(req: Request) {
   // Generera inköpslista från receptens ingredienser
   await rebuildShoppingList(supabase, plan.household_id, plan_id);
 
+  // Para fre/lör med drinkar (parallellt) — best-effort, blockerar inte
+  const drinkDays = week.entries.filter((e) => {
+    if (!e.recipe || e.takeaway) return false;
+    const day = new Date(e.date).getDay();
+    return day === 5 || day === 6; // fredag eller lördag
+  });
+
+  await Promise.all(
+    drinkDays.map(async (entry) => {
+      if (!entry.recipe) return;
+      const sug = await pairDrink({
+        title: entry.recipe.title,
+        cuisine: entry.recipe.cuisine,
+        tags: entry.recipe.tags,
+      });
+      if (!sug) return;
+
+      const { data: drink } = await supabase
+        .from("sondag_drinks")
+        .insert({
+          household_id: plan.household_id,
+          name: sug.name,
+          description: sug.description,
+          base_spirit: sug.base_spirit,
+          glass_type: sug.glass_type,
+          garnish: sug.garnish,
+          prep_minutes: sug.prep_minutes,
+          instructions: sug.instructions ?? [],
+          ai_generated: true,
+          saved: false,
+        })
+        .select()
+        .single();
+
+      if (!drink) return;
+
+      if (Array.isArray(sug.ingredients)) {
+        await supabase.from("sondag_drink_ingredients").insert(
+          sug.ingredients.map((ing, idx) => ({
+            drink_id: drink.id,
+            name: ing.name,
+            quantity: ing.quantity,
+            unit: ing.unit,
+            category: ing.category,
+            order_index: idx,
+          }))
+        );
+      }
+
+      // Länka drinken till meal-entry:n
+      await supabase
+        .from("sondag_meal_plan_entries")
+        .update({ drink_id: drink.id })
+        .match({ meal_plan_id: plan_id, date: entry.date, slot: entry.slot });
+    })
+  );
+
   await logActivity({
     verb: "generated_menu",
     object_type: "meal_plan",
     object_id: plan_id,
     object_name: `vecka ${plan.week_start}`,
-    payload: { recipes: week.entries.filter((e) => e.recipe).length },
+    payload: { recipes: week.entries.filter((e) => e.recipe).length, drinks: drinkDays.length },
   });
 
   return NextResponse.json({ ok: true, notes: week.notes });

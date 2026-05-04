@@ -53,6 +53,15 @@ export default async function VeckaPage({
     .select("*")
     .eq("meal_plan_id", plan!.id);
 
+  const drinkIds = (entries ?? []).map((e) => e.drink_id).filter((x): x is string => !!x);
+  const { data: pairedDrinks } = drinkIds.length
+    ? await supabase
+        .from("sondag_drinks")
+        .select("id, name, base_spirit, glass_type")
+        .in("id", drinkIds)
+    : { data: [] as Array<{ id: string; name: string; base_spirit: string | null; glass_type: string | null }> };
+  const drinksById = new Map((pairedDrinks ?? []).map((d) => [d.id, d]));
+
   // Hämta trippkalendern parallellt
   const recipeIds = (entries ?? []).map((e) => e.recipe_id).filter((x): x is string => !!x);
   const [{ data: recipes }, { data: members }, { data: ingredients }, { data: trips }] = await Promise.all([
@@ -96,6 +105,7 @@ export default async function VeckaPage({
   const enrichedEntries = (entries ?? []).map((e) => ({
     ...e,
     recipes: e.recipe_id ? recipeById.get(e.recipe_id) ?? null : null,
+    drink: e.drink_id ? drinksById.get(e.drink_id) ?? null : null,
   }));
 
   const days = Array.from({ length: 7 }, (_, i) => {
