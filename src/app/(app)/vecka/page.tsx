@@ -119,27 +119,32 @@ export default async function VeckaPage({
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
-        <div className="flex-1">
-          <div className="flex items-baseline gap-3 mb-2">
-            <span className="section-no text-5xl md:text-6xl tabular-nums leading-none">
-              v.{weekNumber}
-            </span>
-            {isCurrentWeek && (
-              <span className="inline-block px-2 py-0.5 bg-rust text-cream text-[10px] uppercase tracking-[0.18em] rounded-sm">
-                Just nu
-              </span>
-            )}
+      {/* Magazine-cover hero */}
+      <div className="relative mb-14 -mx-6 md:-mx-10 px-6 md:px-10 py-10 md:py-14 border-y border-espresso/15 bg-cream-light/40">
+        <div className="grid md:grid-cols-12 gap-6 items-center">
+          <div className="md:col-span-7">
+            <p className="eyebrow mb-4">
+              {isCurrentWeek ? "Denna vecka" : `Vecka ${weekNumber}`}
+            </p>
+            <h1 className="font-display text-[44px] md:text-7xl leading-[0.95] tracking-[-0.025em]">
+              {shortDate(weekStart)}{" "}
+              <em className="text-rust">→</em>{" "}
+              {shortDate(days[6])}
+            </h1>
+            <p className="text-sm md:text-base text-ink-soft mt-4 italic max-w-md leading-relaxed">
+              Söndag är planeringsdagen. Tap en cell för att lägga till med AI eller markera takeaway.
+            </p>
           </div>
-          <h1 className="text-3xl md:text-4xl mt-4">
-            {shortDate(weekStart)} <em className="text-rust">—</em>{" "}
-            {shortDate(days[6])}
-          </h1>
-          <p className="text-sm text-ink-soft mt-3 italic max-w-md">
-            Söndag är planeringsdagen. Tap en cell för att lägga till med AI eller markera takeaway.
-          </p>
+          <div className="md:col-span-5 flex md:justify-end items-center gap-6">
+            <span
+              className="font-display italic text-rust leading-[0.85] tabular-nums select-none"
+              style={{ fontSize: "clamp(80px, 16vw, 180px)" }}
+            >
+              {weekNumber}
+            </span>
+          </div>
         </div>
-        <div className="flex items-end gap-3">
+        <div className="flex items-center justify-between gap-3 mt-8 pt-6 border-t border-espresso/10">
           <WeekSwitcher
             currentIso={weekStartIso}
             prevIso={formatDateISO(prevWeek)}

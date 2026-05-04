@@ -22,12 +22,9 @@ interface Member { id: string; name: string; avatar_color: string }
 
 type Slot = "frukost" | "lunch" | "middag";
 
-// Vardag (mån-fre) = bara middag (jobb/skola)
-// Helg (lör-sön) = middag (familjelunch om man vill)
 function slotsFor(day: Date): Slot[] {
-  const d = day.getDay(); // 0=sön, 6=lör
-  if (d === 0 || d === 6) return ["middag"]; // helg
-  return ["middag"]; // vardag — kan utökas till ["frukost","lunch","middag"] om någon vill
+  void day;
+  return ["middag"];
 }
 
 interface Ingredient {
@@ -60,13 +57,6 @@ interface Recipe {
   ingredients: Ingredient[];
 }
 
-function imageThumb(url: string | null | undefined, size = 80): string | null {
-  if (!url) return null;
-  // Pollinations rate-limitar oss — slå av tills vi har riktig provider
-  if (url.includes("image.pollinations.ai")) return null;
-  return url;
-}
-
 interface PairedDrink {
   id: string;
   name: string;
@@ -88,6 +78,26 @@ interface Entry {
   lunch_for?: string[] | null;
   recipes?: Recipe | null;
   drink?: PairedDrink | null;
+}
+
+// Editorial accent per dag — cykliska men medvetna
+const DAY_ACCENT = ["text-rust", "text-petrol", "text-camel", "text-olive", "text-forest", "text-burgundy", "text-rust"];
+// Index 0 = måndag, 6 = söndag (sv-format)
+function dayIndex(d: Date): number {
+  const js = d.getDay(); // 0=sön, 1=mån
+  return js === 0 ? 6 : js - 1;
+}
+function isWeekend(d: Date): boolean {
+  const js = d.getDay();
+  return js === 0 || js === 6;
+}
+
+function imageForCell(url: string | null | undefined, w: number): string | null {
+  if (!url) return null;
+  if (url.includes("image.pollinations.ai")) {
+    return url.replace(/width=\d+/, `width=${w}`).replace(/height=\d+/, `height=${Math.round(w * 0.75)}`);
+  }
+  return url;
 }
 
 export function WeekGrid({
@@ -125,143 +135,204 @@ export function WeekGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-7 gap-px bg-espresso/15 border border-espresso/15">
-      {days.map((day) => (
-        <div key={day.toISOString()} className="bg-cream-light flex flex-col">
-          <div className="px-4 pt-4 pb-3 border-b border-espresso/10">
-            <p className="eyebrow">{weekdayName(day)}</p>
-            <p className="font-display text-2xl mt-1">{day.getDate()}</p>
-          </div>
-          {slotsFor(day).map((slot) => {
-            const entry = findEntry(day, slot);
-            const hasContent = entry?.recipes || entry?.custom_title || entry?.takeaway;
-            return (
-              <div
-                key={slot}
-                className={cn(
-                  "px-4 py-3 border-b border-espresso/10 last:border-b-0 min-h-[88px] flex flex-col justify-between",
-                  hasContent && "bg-cream"
-                )}
-              >
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-ink-soft mb-1">
-                    {slot}
-                  </p>
-                  {entry?.takeaway ? (
-                    <p className="text-sm font-medium flex items-center gap-1.5">
-                      <ShoppingBag size={12} className="text-rust" />
-                      {entry.takeaway_vendor || entry.takeaway_type || "Takeaway"}
-                    </p>
-                  ) : entry?.recipes ? (
-                    <button
-                      onClick={() => entry.recipes && setShowRecipe({ recipe: entry.recipes, date: formatDateISO(day), slot })}
-                      className="text-left w-full group flex gap-2 items-start"
-                    >
-                      {(() => {
-                        const t = imageThumb(entry.recipes.image_url, 56);
-                        return t ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={t}
-                            alt=""
-                            className="w-12 h-12 object-cover rounded-sm border border-espresso/10 shrink-0"
-                            loading="lazy"
-                          />
-                        ) : null;
-                      })()}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium leading-snug group-hover:text-rust transition">
-                          {entry.recipes.title}
-                        </p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {(entry.recipes.prep_minutes || entry.recipes.cook_minutes) && (
-                            <span className="text-[10px] text-ink-soft tabular-nums">
-                              {(entry.recipes.prep_minutes ?? 0) + (entry.recipes.cook_minutes ?? 0)} min
-                            </span>
-                          )}
-                          {entry.recipes.rating ? (
-                            <span className="text-[10px] text-rust tabular-nums">
-                              {"★".repeat(entry.recipes.rating)}
-                            </span>
-                          ) : null}
-                        </div>
-                        {entry.drink && (
-                          <p className="text-[10px] text-petrol mt-1 flex items-center gap-1">
-                            <Wine size={9} />
-                            {entry.drink.name}
-                          </p>
-                        )}
-                        {entry.lunch_for && entry.lunch_for.length > 0 && (
-                          <p className="text-[10px] text-camel mt-1 flex items-center gap-1">
-                            🍱 {entry.lunch_for.join(", ")}s lunch imorgon
-                          </p>
-                        )}
-                      </div>
-                    </button>
-                  ) : entry?.custom_title ? (
-                    <p className="text-sm leading-snug">{entry.custom_title}</p>
-                  ) : (
-                    <p className="text-sm text-ink-soft/60">—</p>
+    <div className="space-y-3">
+      {days.map((day) => {
+        const accentClass = DAY_ACCENT[dayIndex(day)];
+        const weekend = isWeekend(day);
+        const slots = slotsFor(day);
+
+        return (
+          <article
+            key={day.toISOString()}
+            className={cn(
+              "card overflow-hidden transition",
+              weekend && "border-espresso/25"
+            )}
+          >
+            {slots.map((slot) => {
+              const entry = findEntry(day, slot);
+              const recipeImg = entry?.recipes ? imageForCell(entry.recipes.image_url, 480) : null;
+              const hasContent = !!(entry?.recipes || entry?.custom_title || entry?.takeaway);
+
+              return (
+                <div
+                  key={slot}
+                  className={cn(
+                    "grid grid-cols-12 md:grid-cols-12 gap-0",
+                    "border-l-4",
+                    weekend ? `border-${DAY_ACCENT[dayIndex(day)].replace("text-", "")}` : "border-transparent"
                   )}
-                </div>
-                <div className="flex items-center justify-between mt-2 gap-1">
-                  <button
-                    onClick={() => toggleTakeaway(day, slot, entry)}
-                    disabled={isPending}
+                  style={{
+                    borderLeftColor: weekend
+                      ? getComputedColor(DAY_ACCENT[dayIndex(day)])
+                      : "transparent",
+                  }}
+                >
+                  {/* Datum-kolumn */}
+                  <div className="col-span-3 md:col-span-2 px-4 py-5 border-r border-espresso/10 flex flex-col justify-center">
+                    <p className={cn("eyebrow", accentClass)}>
+                      {weekdayName(day).slice(0, 3)}
+                    </p>
+                    <p className="font-display text-4xl md:text-5xl mt-1 leading-none tabular-nums">
+                      {day.getDate()}
+                    </p>
+                    <p className="text-[10px] text-ink-soft uppercase tracking-[0.18em] mt-2">
+                      {slot}
+                    </p>
+                  </div>
+
+                  {/* Hero-bild om finns */}
+                  {recipeImg && hasContent && (
+                    <div className="col-span-9 md:col-span-3 relative aspect-[4/3] md:aspect-auto bg-cream-accent overflow-hidden border-r border-espresso/10">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={recipeImg}
+                        alt=""
+                        className="absolute inset-0 w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
+
+                  {/* Innehåll */}
+                  <div
                     className={cn(
-                      "text-[10px] uppercase tracking-[0.18em] transition px-2 py-2 -mx-2 min-h-[36px]",
-                      entry?.takeaway
-                        ? "text-rust"
-                        : "text-ink-soft hover:text-rust"
+                      "px-5 py-5 flex flex-col justify-between min-h-[120px]",
+                      recipeImg && hasContent ? "col-span-12 md:col-span-7" : "col-span-9 md:col-span-10"
                     )}
                   >
-                    {entry?.takeaway ? "↺ Laga själv" : "Takeaway"}
-                  </button>
-                  <div className="flex items-center gap-0.5">
-                    {entry?.absent_member_names && entry.absent_member_names.length > 0 && (
-                      <div className="flex -space-x-1.5 mr-1">
-                        {entry.absent_member_names.map((name) => {
-                          const m = members.find((mm) => mm.name === name);
-                          return (
-                            <span
-                              key={name}
-                              title={`${name} borta`}
-                              className={cn(
-                                "w-4 h-4 rounded-full flex items-center justify-center text-cream text-[8px] font-display ring-1 ring-cream-light opacity-50 line-through",
-                                m ? COLOR_MAP[m.avatar_color] ?? "bg-rust" : "bg-rust"
-                              )}
-                            >
-                              {name[0]}
-                            </span>
-                          );
-                        })}
+                    <div className="flex-1">
+                      {entry?.takeaway ? (
+                        <button
+                          onClick={() => setAbsenceFor({ date: formatDateISO(day), slot })}
+                          className="text-left"
+                        >
+                          <p className="font-display italic text-rust text-xl leading-tight flex items-center gap-2">
+                            <ShoppingBag size={16} />
+                            {entry.takeaway_vendor || entry.takeaway_type || "Takeaway"}
+                          </p>
+                        </button>
+                      ) : entry?.recipes ? (
+                        <button
+                          onClick={() => entry.recipes && setShowRecipe({ recipe: entry.recipes, date: formatDateISO(day), slot })}
+                          className="text-left w-full group"
+                        >
+                          {entry.recipes.cuisine && (
+                            <p className="eyebrow mb-1.5">{entry.recipes.cuisine}</p>
+                          )}
+                          <h3 className="font-display text-xl md:text-2xl leading-tight group-hover:text-rust transition">
+                            {entry.recipes.title}
+                          </h3>
+                          {entry.recipes.description && (
+                            <p className="text-xs text-ink-soft italic mt-1.5 line-clamp-2 max-w-md">
+                              {entry.recipes.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-3 mt-3 text-[11px] text-ink-soft">
+                            {(entry.recipes.prep_minutes || entry.recipes.cook_minutes) && (
+                              <span className="tabular-nums">
+                                {(entry.recipes.prep_minutes ?? 0) + (entry.recipes.cook_minutes ?? 0)} min
+                              </span>
+                            )}
+                            {entry.recipes.rating ? (
+                              <span className="text-rust tabular-nums">
+                                {"★".repeat(entry.recipes.rating)}
+                              </span>
+                            ) : null}
+                            {entry.drink && (
+                              <span className="text-petrol flex items-center gap-1">
+                                <Wine size={11} />
+                                {entry.drink.name}
+                              </span>
+                            )}
+                            {entry.lunch_for && entry.lunch_for.length > 0 && (
+                              <span className="text-camel">
+                                🍱 {entry.lunch_for.join(", ")}s lunch
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      ) : entry?.custom_title ? (
+                        <p className="text-base text-ink-soft italic">{entry.custom_title}</p>
+                      ) : (
+                        <button
+                          onClick={() => setQuickAdd({ date: formatDateISO(day), slot })}
+                          className="text-left text-ink-soft/60 hover:text-rust italic text-sm transition"
+                        >
+                          + lägg till med AI
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Action-rad */}
+                    <div className="flex items-center justify-between mt-3 -mx-2">
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => toggleTakeaway(day, slot, entry)}
+                          disabled={isPending}
+                          className={cn(
+                            "text-[10px] uppercase tracking-[0.18em] transition px-2 py-2 min-h-[36px]",
+                            entry?.takeaway ? "text-rust" : "text-ink-soft hover:text-rust"
+                          )}
+                        >
+                          {entry?.takeaway ? "↺ Laga själv" : "Takeaway"}
+                        </button>
                       </div>
-                    )}
-                    <button
-                      onClick={() => setAbsenceFor({ date: formatDateISO(day), slot })}
-                      title="Vem är borta"
-                      className="icon-btn icon-btn-rust"
-                      style={{ minWidth: 36, minHeight: 36 }}
-                    >
-                      <Users size={14} />
-                    </button>
-                    {!entry?.takeaway && (
-                      <button
-                        onClick={() => setQuickAdd({ date: formatDateISO(day), slot })}
-                        title="Lägg till med AI"
-                        className="icon-btn icon-btn-rust"
-                        style={{ minWidth: 36, minHeight: 36 }}
-                      >
-                        <Sparkles size={14} />
-                      </button>
-                    )}
+                      <div className="flex items-center gap-0.5">
+                        {entry?.absent_member_names && entry.absent_member_names.length > 0 && (
+                          <div className="flex -space-x-1.5 mr-1">
+                            {entry.absent_member_names.map((name) => {
+                              const m = members.find((mm) => mm.name === name);
+                              return (
+                                <span
+                                  key={name}
+                                  title={`${name} borta`}
+                                  className={cn(
+                                    "w-5 h-5 rounded-full flex items-center justify-center text-cream text-[9px] font-display ring-1 ring-cream-light opacity-50 line-through",
+                                    m ? COLOR_MAP[m.avatar_color] ?? "bg-rust" : "bg-rust"
+                                  )}
+                                >
+                                  {name[0]}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+                        <button
+                          onClick={() => setAbsenceFor({ date: formatDateISO(day), slot })}
+                          title="Vem är borta"
+                          className="icon-btn icon-btn-rust"
+                          style={{ minWidth: 36, minHeight: 36 }}
+                        >
+                          <Users size={14} />
+                        </button>
+                        {!entry?.takeaway && (
+                          <button
+                            onClick={() => setQuickAdd({ date: formatDateISO(day), slot })}
+                            title="Lägg till med AI"
+                            className="icon-btn icon-btn-rust"
+                            style={{ minWidth: 36, minHeight: 36 }}
+                          >
+                            <Sparkles size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      ))}
+              );
+            })}
+          </article>
+        );
+      })}
+
+      {showRecipe && (
+        <RecipeDialog
+          recipe={showRecipe.recipe}
+          onClose={() => setShowRecipe(null)}
+          planContext={{ plan_id: planId, date: showRecipe.date, slot: showRecipe.slot }}
+        />
+      )}
 
       {quickAdd && (
         <QuickAddDialog
@@ -269,14 +340,6 @@ export function WeekGrid({
           date={quickAdd.date}
           slot={quickAdd.slot}
           onClose={() => setQuickAdd(null)}
-        />
-      )}
-
-      {showRecipe && (
-        <RecipeDialog
-          recipe={showRecipe.recipe}
-          onClose={() => setShowRecipe(null)}
-          planContext={{ plan_id: planId, date: showRecipe.date, slot: showRecipe.slot }}
         />
       )}
 
@@ -298,6 +361,18 @@ export function WeekGrid({
       )}
     </div>
   );
+}
+
+function getComputedColor(textClass: string): string {
+  const map: Record<string, string> = {
+    "text-rust": "#B5562B",
+    "text-petrol": "#2E5C6E",
+    "text-camel": "#C4A678",
+    "text-olive": "#6B6B3A",
+    "text-forest": "#3A4A35",
+    "text-burgundy": "#6E2A2A",
+  };
+  return map[textClass] ?? "#B5562B";
 }
 
 function AbsenceDialog({
