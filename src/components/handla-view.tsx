@@ -255,11 +255,23 @@ export function HandlaView({
       {/* Listan */}
       <div className="px-6 py-6 md:p-0 md:mt-8">
         {total === 0 && (
-          <div className="text-center py-20">
-            <ShoppingCart size={32} className="mx-auto text-ink-soft mb-4" />
-            <p className="text-sm text-ink-soft">
-              Inget att handla just nu. Generera en veckomeny först.
+          <div className="text-center py-16 max-w-sm mx-auto">
+            <ShoppingCart size={32} className="mx-auto text-rust mb-5" />
+            <h3 className="font-display text-2xl mb-3">
+              Inget på <em className="text-rust">listan</em>.
+            </h3>
+            <p className="text-sm text-ink-soft mb-6">
+              Generera veckomenyn så fyller AI:n listan automatiskt.
+              Eller skriv "Importera recept" från en URL.
             </p>
+            <div className="flex flex-col gap-2">
+              <a href="/vecka" className="btn btn-primary justify-center">
+                Till veckomenyn
+              </a>
+              <a href="/skap" className="btn btn-ghost justify-center text-xs">
+                Eller fyll på från skåpet
+              </a>
+            </div>
           </div>
         )}
 

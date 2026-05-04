@@ -182,10 +182,20 @@ export function PantryList({
       </div>
 
       {Object.entries(grouped).length === 0 && (
-        <p className="text-sm text-ink-soft italic">
-          Inget i {TABS.find((t) => t.key === activeTab)?.label.toLowerCase()} än.
-          Markera "finns hemma" på inköpslistan eller scanna en streckkod.
-        </p>
+        <div className="text-center py-16 max-w-sm mx-auto">
+          {(() => {
+            const t = TABS.find((tab) => tab.key === activeTab);
+            const Icon = t?.Icon ?? Package;
+            return <Icon size={28} className="mx-auto text-rust mb-4" />;
+          })()}
+          <h3 className="font-display text-xl mb-2">
+            <em className="text-rust">{TABS.find((t) => t.key === activeTab)?.label}</em> är tomt
+          </h3>
+          <p className="text-sm text-ink-soft">
+            Lägg till för hand med formuläret ovan, eller scanna en streckkod på toppen
+            av sidan när du kommer hem från ICA.
+          </p>
+        </div>
       )}
 
       <div className="grid md:grid-cols-2 gap-x-10 gap-y-1">

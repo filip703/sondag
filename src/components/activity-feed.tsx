@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { describeActivity, type ActivityVerb } from "@/lib/activity-labels";
 
 interface Item {
@@ -7,9 +8,26 @@ interface Item {
   actor_name: string;
   verb: string;
   object_type: string | null;
+  object_id: string | null;
   object_name: string | null;
   payload: Record<string, unknown> | null;
   created_at: string;
+}
+
+function activityLink(it: Item): string | null {
+  const meal_date = it.payload?.date;
+  if (typeof meal_date === "string") return `/vecka?vecka=${meal_date}`;
+  if (it.object_type === "shopping_item") return "/handla";
+  if (it.object_type === "pantry_item") return "/skafferi";
+  if (it.object_type === "always_have_item") return "/skafferi";
+  if (it.object_type === "recipe") return `/vecka`;
+  if (it.object_type === "fest" && it.object_id) return `/fest/${it.object_id}`;
+  if (it.object_type === "drink" || it.object_type === "drink_image") return "/bar";
+  if (it.object_type === "meal_plan") return "/vecka";
+  if (it.object_type === "trip") return "/vecka";
+  if (it.object_type === "standard_item" || it.object_type === "shopping_export") return "/skap";
+  if (it.object_type === "voice_command") return "/handla";
+  return null;
 }
 
 function timeAgo(iso: string): string {
@@ -60,22 +78,36 @@ export function ActivityFeed({ items }: { items: Item[] }) {
             <p className="eyebrow">{day}</p>
           </div>
           <ul>
-            {list.map((it) => (
-              <li
-                key={it.id}
-                className="py-3 border-b border-espresso/10 flex items-baseline gap-3"
-              >
-                <span className={`font-medium ${actorColor(it.actor_name)}`}>
-                  {it.actor_name}
-                </span>
-                <span className="text-sm text-ink-soft flex-1">
-                  {describeActivity(it.verb as ActivityVerb, it.object_name)}
-                </span>
-                <span className="text-xs text-ink-soft/70 tabular-nums">
-                  {timeAgo(it.created_at)}
-                </span>
-              </li>
-            ))}
+            {list.map((it) => {
+              const href = activityLink(it);
+              const content = (
+                <>
+                  <span className={`font-medium ${actorColor(it.actor_name)}`}>
+                    {it.actor_name}
+                  </span>
+                  <span className="text-sm text-ink-soft flex-1">
+                    {describeActivity(it.verb as ActivityVerb, it.object_name)}
+                  </span>
+                  <span className="text-xs text-ink-soft/70 tabular-nums shrink-0">
+                    {timeAgo(it.created_at)}
+                  </span>
+                </>
+              );
+              return (
+                <li key={it.id} className="border-b border-espresso/10">
+                  {href ? (
+                    <Link
+                      href={href}
+                      className="py-3 flex items-baseline gap-3 hover:bg-cream-accent/40 -mx-2 px-2 transition rounded-sm"
+                    >
+                      {content}
+                    </Link>
+                  ) : (
+                    <div className="py-3 flex items-baseline gap-3">{content}</div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       ))}
