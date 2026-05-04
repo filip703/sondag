@@ -19,7 +19,8 @@ const RecipeSchema = z.object({
   tags: z.array(z.string()),
   instructions: z.array(z.string()),
   ingredients: z.array(RecipeIngredientSchema),
-  todd_safe_components: z.array(z.string()).optional(), // separata komponenter Todd kan äta
+  todd_safe_components: z.array(z.string()).optional(),
+  lunch_for: z.array(z.string()).optional().default([]), // ["Tine"] om denna middag ger lunchlåda
 });
 
 const MealEntrySchema = z.object({
@@ -112,8 +113,9 @@ KÄRNVÄRDERINGAR:
 - Respektera familjemedlemmars individuella preferenser STRIKT — det är viktigare än variation
 
 REGLER:
-- Bara middagar
+- Bara middagar — frukost och lunch planeras ALDRIG (jobb och skola)
 - Standard 4 portioner, justera om annat anges
+- TINES LUNCHLÅDA: 2-3 vardagsmiddagar/vecka ska designas så att en extra portion blir över och funkar som cold eller microwave-lunch dagen efter (pasta, bowls, wraps, sallader, kallskuren kyckling — INTE crispy/saucy som blir tråkig kall). Öka servings till 5 dessa dagar. Markera entries med "lunch_for": ["Tine"]. Ange i recept-instruktionerna att en portion ska sparas + tag "lunch-leftover".
 - Allergier ÄR ABSOLUTA — aldrig förhandlingsbart
 - Om en medlem inte äter en proteinkälla: använd den ALDRIG som huvudprotein NÄR HEN ÄR HEMMA
 - Om en medlem är BORTA en specifik kväll: ignorera hens preferenser för just den måltiden (t.ex. om Tine är borta kan du köra rött kött)
@@ -289,6 +291,9 @@ OUTPUT
 ═══════════════════════════════════════
 
 Returnera JSON i detta exakta format. En entry per dag (${dayLabels.join(", ")}), bara middag.
+
+VARDAG (mån-fre): inga frukost-/lunch-entries. Endast middag.
+HELG (lör-sön): endast middag.
 
 För selektiva ätare (som Todd): inkludera \`todd_safe_components\` med vad hen kan äta från rätten ELLER vad som ska serveras separat.
 

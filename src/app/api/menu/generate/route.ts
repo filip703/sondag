@@ -287,6 +287,7 @@ export async function POST(req: Request) {
         slot: entry.slot,
         recipe_id: recipe.id,
         servings: entry.recipe.servings,
+        lunch_for: entry.recipe.lunch_for ?? [],
       },
       { onConflict: "meal_plan_id,date,slot" }
     );

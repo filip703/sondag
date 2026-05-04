@@ -21,7 +21,14 @@ const COLOR_MAP: Record<string, string> = {
 interface Member { id: string; name: string; avatar_color: string }
 
 type Slot = "frukost" | "lunch" | "middag";
-const SLOTS: Slot[] = ["frukost", "lunch", "middag"];
+
+// Vardag (mån-fre) = bara middag (jobb/skola)
+// Helg (lör-sön) = middag (familjelunch om man vill)
+function slotsFor(day: Date): Slot[] {
+  const d = day.getDay(); // 0=sön, 6=lör
+  if (d === 0 || d === 6) return ["middag"]; // helg
+  return ["middag"]; // vardag — kan utökas till ["frukost","lunch","middag"] om någon vill
+}
 
 interface Ingredient {
   recipe_id: string;
@@ -78,6 +85,7 @@ interface Entry {
   takeaway_vendor: string | null;
   takeaway_cost: number | null;
   absent_member_names: string[] | null;
+  lunch_for?: string[] | null;
   recipes?: Recipe | null;
   drink?: PairedDrink | null;
 }
@@ -124,7 +132,7 @@ export function WeekGrid({
             <p className="eyebrow">{weekdayName(day)}</p>
             <p className="font-display text-2xl mt-1">{day.getDate()}</p>
           </div>
-          {SLOTS.map((slot) => {
+          {slotsFor(day).map((slot) => {
             const entry = findEntry(day, slot);
             const hasContent = entry?.recipes || entry?.custom_title || entry?.takeaway;
             return (
@@ -181,6 +189,11 @@ export function WeekGrid({
                           <p className="text-[10px] text-petrol mt-1 flex items-center gap-1">
                             <Wine size={9} />
                             {entry.drink.name}
+                          </p>
+                        )}
+                        {entry.lunch_for && entry.lunch_for.length > 0 && (
+                          <p className="text-[10px] text-camel mt-1 flex items-center gap-1">
+                            🍱 {entry.lunch_for.join(", ")}s lunch imorgon
                           </p>
                         )}
                       </div>
