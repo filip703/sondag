@@ -34,10 +34,11 @@
     -webkit-font-smoothing: antialiased;
   }
   body {
-    background:
+    background-color: var(--color-cream);
+    background-image:
       radial-gradient(at 30% 10%, rgba(181, 86, 43, 0.04), transparent 40%),
       radial-gradient(at 80% 80%, rgba(46, 92, 110, 0.04), transparent 40%),
-      var(--color-cream);
+      url("data:image/svg+xml;utf8,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.16 0 0 0 0 0.14 0 0 0 0 0.13 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
     min-height: 100dvh;
   }
   ::selection {
@@ -83,6 +84,39 @@
     border-top: 1px solid var(--color-espresso);
     border-bottom: 1px solid var(--color-espresso);
     padding: 0.6rem 0;
+  }
+  /* Editorial section-number — visas som "No. 01" */
+  .section-no {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-style: italic;
+    color: var(--color-rust);
+    letter-spacing: -0.01em;
+  }
+  /* Drop-cap för första bokstav i instruktion */
+  .dropcap::first-letter {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: 2.4em;
+    line-height: 0.8;
+    float: left;
+    margin: 0.2em 0.18em 0 0;
+    color: var(--color-rust);
+  }
+  /* Editorial separator: ─ × ─ */
+  .ornament {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: var(--color-ink-soft);
+    font-style: italic;
+    text-align: center;
+  }
+  .ornament::before, .ornament::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: rgba(42, 37, 32, 0.2);
   }
   .btn {
     display: inline-flex;

@@ -15,12 +15,12 @@ export default async function AktivitetPage() {
 
   return (
     <div>
-      <div className="mb-10">
-        <p className="eyebrow mb-3">Aktivitet</p>
-        <h1 className="text-4xl md:text-5xl">
+      <div className="mb-12">
+        <span className="section-no text-sm tabular-nums">No. 07</span>
+        <h1 className="text-4xl md:text-5xl mt-2">
           Vad <em className="text-rust">händer</em> i hushållet.
         </h1>
-        <p className="text-sm text-ink-soft mt-3 max-w-xl">
+        <p className="text-sm text-ink-soft mt-3 italic max-w-xl">
           Senaste 200 händelserna. Vem gjorde vad, när.
         </p>
       </div>

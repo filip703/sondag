@@ -16,13 +16,13 @@ export default async function SkapPage() {
 
   return (
     <div>
-      <div className="mb-10">
-        <p className="eyebrow mb-3">Standardskåpet</p>
-        <h1 className="text-4xl md:text-5xl">
+      <div className="mb-12">
+        <span className="section-no text-sm tabular-nums">No. 05</span>
+        <h1 className="text-4xl md:text-5xl mt-2">
           Vad ska <em className="text-rust">alltid</em> finnas hemma.
         </h1>
-        <p className="text-sm text-ink-soft mt-3 max-w-xl">
-          Komplett premium home bar plus grundprovianten. Markera "fyll på" på det som tagit slut → exporteras eller synkas till handlingen.
+        <p className="text-sm text-ink-soft mt-3 italic max-w-xl">
+          Komplett premium home bar plus grundprovianten. Markera "fyll på" på det som tagit slut.
         </p>
       </div>
       <SkapView items={items ?? []} />

@@ -23,14 +23,13 @@ export default async function FamiljPage() {
 
   return (
     <div>
-      <div className="mb-10">
-        <p className="eyebrow mb-3">Familjen</p>
-        <h1 className="text-4xl md:text-5xl">
+      <div className="mb-12">
+        <span className="section-no text-sm tabular-nums">No. 06</span>
+        <h1 className="text-4xl md:text-5xl mt-2">
           Vem äter <em className="text-rust">vad</em>.
         </h1>
-        <p className="text-sm text-ink-soft mt-3 max-w-xl">
-          Per-medlems-profiler. Allergier är absoluta. Älskar/gillar inte väger AI-genereringen.
-          Selektiva ätare får komponenter separat.
+        <p className="text-sm text-ink-soft mt-3 italic max-w-xl">
+          Allergier är absoluta. Älskar/gillar inte väger AI-genereringen. Selektiva ätare får komponenter separat.
         </p>
       </div>
       <FamilyEditor

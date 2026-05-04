@@ -38,12 +38,15 @@ export function HandlaView({
   items,
   storeName,
   lastSynced,
+  sectionNo,
 }: {
   list: List;
   items: Item[];
   storeName: string;
   lastSynced: string | null;
+  sectionNo?: string;
 }) {
+  void sectionNo;
   const [isPending, startTransition] = useTransition();
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
@@ -162,7 +165,8 @@ export function HandlaView({
       <div className="sticky top-[57px] z-40 bg-cream border-b border-espresso/15 px-6 py-4 md:rounded-sm md:border md:relative md:top-0">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <p className="eyebrow flex items-center gap-2">
+            <span className="section-no text-sm tabular-nums">No. 02</span>
+            <p className="eyebrow flex items-center gap-2 mt-1">
               <Store size={11} />
               {storeName}
             </p>

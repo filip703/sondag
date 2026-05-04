@@ -21,15 +21,14 @@ export default async function SkafferiPage() {
 
   return (
     <div>
-      <div className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+      <div className="mb-12 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
         <div>
-          <p className="eyebrow mb-3">Skafferi</p>
-          <h1 className="text-4xl md:text-5xl">
+          <span className="section-no text-sm tabular-nums">No. 03</span>
+          <h1 className="text-4xl md:text-5xl mt-2">
             Vad finns <em className="text-rust">hemma</em>.
           </h1>
-          <p className="text-sm text-ink-soft mt-3 max-w-xl">
-            Items markerade som "alltid hemma" filtreras automatiskt bort från inköpslistan.
-            Scanna en streckkod för att lägga till snabbt.
+          <p className="text-sm text-ink-soft mt-3 italic max-w-xl">
+            Skafferi, kyl och frys. Scanna en streckkod när du kommer hem så hamnar varan rätt automatiskt.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">

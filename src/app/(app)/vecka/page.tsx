@@ -119,22 +119,24 @@ export default async function VeckaPage({
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
         <div className="flex-1">
-          <p className="eyebrow mb-3">
-            Vecka {weekNumber}
+          <div className="flex items-baseline gap-3 mb-2">
+            <span className="section-no text-5xl md:text-6xl tabular-nums leading-none">
+              v.{weekNumber}
+            </span>
             {isCurrentWeek && (
-              <span className="ml-2 inline-block px-2 py-0.5 bg-rust text-cream text-[10px] rounded-sm normal-case tracking-normal">
-                denna vecka
+              <span className="inline-block px-2 py-0.5 bg-rust text-cream text-[10px] uppercase tracking-[0.18em] rounded-sm">
+                Just nu
               </span>
             )}
-          </p>
-          <h1 className="text-4xl md:text-5xl">
+          </div>
+          <h1 className="text-3xl md:text-4xl mt-4">
             {shortDate(weekStart)} <em className="text-rust">—</em>{" "}
             {shortDate(days[6])}
           </h1>
-          <p className="text-sm text-ink-soft mt-3">
-            Frukost, lunch och middag för fyra. Markera takeaway eller skriv "gryta" så fixar AI:n.
+          <p className="text-sm text-ink-soft mt-3 italic max-w-md">
+            Söndag är planeringsdagen. Tap en cell för att lägga till med AI eller markera takeaway.
           </p>
         </div>
         <div className="flex items-end gap-3">

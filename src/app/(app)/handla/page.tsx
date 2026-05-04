@@ -58,6 +58,7 @@ export default async function HandlaPage() {
       items={items ?? []}
       storeName={ica?.default_store_name ?? "Maxi ICA Stormarknad Häggvik"}
       lastSynced={ica?.last_synced_at ?? null}
+      sectionNo="02"
     />
   );
 }

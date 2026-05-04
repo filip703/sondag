@@ -325,15 +325,17 @@ export function RecipeDialog({
 
         {/* Steg */}
         {recipe.instructions && recipe.instructions.length > 0 && (
-          <section className="px-6 py-5 border-t border-espresso/15">
-            <p className="eyebrow mb-3">Så gör du</p>
-            <ol className="space-y-3">
+          <section className="px-6 py-6 border-t border-espresso/15">
+            <p className="eyebrow mb-4">Så gör du</p>
+            <ol className="space-y-5">
               {recipe.instructions.map((step, i) => (
-                <li key={i} className="flex gap-4 text-sm">
-                  <span className="font-display text-rust text-lg leading-none tabular-nums shrink-0">
+                <li key={i} className="flex gap-5 text-sm">
+                  <span className="font-display italic text-rust text-3xl leading-none tabular-nums shrink-0 mt-0.5">
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                  <span className="leading-relaxed">{step}</span>
+                  <span className={cn("leading-relaxed pt-1", i === 0 && "dropcap")}>
+                    {step}
+                  </span>
                 </li>
               ))}
             </ol>
