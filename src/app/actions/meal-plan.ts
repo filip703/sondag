@@ -64,6 +64,75 @@ export async function clearEntryAction(plan_id: string, date: string, slot: stri
   revalidatePath("/vecka");
 }
 
+/**
+ * Flytta en måltid från (date_from, slot_from) till (date_to, slot_to).
+ * Om target redan har en entry: SWAP — innehållet byter plats.
+ * Om target är tom: bara flytta.
+ */
+export async function moveEntryAction(args: {
+  plan_id: string;
+  date_from: string;
+  slot_from: string;
+  date_to: string;
+  slot_to: string;
+}) {
+  const supabase = await createClient();
+
+  if (args.date_from === args.date_to && args.slot_from === args.slot_to) return;
+
+  const { data: source } = await supabase
+    .from("sondag_meal_plan_entries")
+    .select("*")
+    .match({ meal_plan_id: args.plan_id, date: args.date_from, slot: args.slot_from })
+    .maybeSingle();
+
+  const { data: target } = await supabase
+    .from("sondag_meal_plan_entries")
+    .select("*")
+    .match({ meal_plan_id: args.plan_id, date: args.date_to, slot: args.slot_to })
+    .maybeSingle();
+
+  if (!source) return;
+
+  // Ta bort båda entries så vi kan skriva om utan PK-kollision
+  await supabase
+    .from("sondag_meal_plan_entries")
+    .delete()
+    .or(
+      `and(date.eq.${args.date_from},slot.eq.${args.slot_from}),and(date.eq.${args.date_to},slot.eq.${args.slot_to})`
+    )
+    .eq("meal_plan_id", args.plan_id);
+
+  // Skriv source till target-position
+  await supabase.from("sondag_meal_plan_entries").insert({
+    ...source,
+    id: undefined,
+    date: args.date_to,
+    slot: args.slot_to,
+  });
+
+  // Om target hade innehåll, skriv det till source-position (swap)
+  if (target) {
+    await supabase.from("sondag_meal_plan_entries").insert({
+      ...target,
+      id: undefined,
+      date: args.date_from,
+      slot: args.slot_from,
+    });
+  }
+
+  await logActivity({
+    verb: "edited_member",
+    object_type: "meal_entry",
+    object_name: target
+      ? `Bytte plats på ${args.date_from} ↔ ${args.date_to}`
+      : `Flyttade till ${args.date_to}`,
+    payload: { from: args.date_from, to: args.date_to, swap: !!target },
+  });
+
+  revalidatePath("/vecka");
+}
+
 export async function setAbsenceAction(args: {
   plan_id: string;
   date: string;

@@ -10,6 +10,9 @@ import {
   ensureRecipeImageAction,
   regenerateRecipeImageAction,
 } from "@/app/actions/recipes";
+import { moveEntryAction } from "@/app/actions/meal-plan";
+import { weekdayName, startOfWeek, formatDateISO } from "@/lib/utils";
+import { ArrowRightLeft } from "lucide-react";
 
 interface Ingredient {
   recipe_id: string;
@@ -56,6 +59,7 @@ export function RecipeDialog({
   const [showDelete, setShowDelete] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(recipe.image_url ?? null);
   const [imageError, setImageError] = useState(false);
+  const [showMove, setShowMove] = useState(false);
   const router = useRouter();
 
   // Lazy-generera bild — körs bara om en provider är aktiverad (annars no-op)
@@ -254,7 +258,15 @@ export function RecipeDialog({
           </div>
 
           {planContext && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              {!showDelete && (
+                <button
+                  onClick={() => setShowMove(true)}
+                  className="text-xs text-ink-soft hover:text-rust flex items-center gap-1"
+                >
+                  <ArrowRightLeft size={12} /> Flytta dag
+                </button>
+              )}
               {!showDelete ? (
                 <button
                   onClick={() => setShowDelete(true)}
@@ -356,6 +368,113 @@ export function RecipeDialog({
             </a>
           </div>
         )}
+      </div>
+
+      {showMove && planContext && (
+        <MoveDayDialog
+          context={planContext}
+          recipeTitle={recipe.title}
+          onClose={() => {
+            setShowMove(false);
+            onClose();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function MoveDayDialog({
+  context,
+  recipeTitle,
+  onClose,
+}: {
+  context: { plan_id: string; date: string; slot: string };
+  recipeTitle: string;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  // Generera veckans 7 dagar baserat på från-datum
+  const sourceDate = new Date(context.date);
+  const weekStart = startOfWeek(sourceDate);
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    return d;
+  });
+
+  function moveTo(targetDate: Date) {
+    const targetIso = formatDateISO(targetDate);
+    if (targetIso === context.date) {
+      onClose();
+      return;
+    }
+    startTransition(async () => {
+      await moveEntryAction({
+        plan_id: context.plan_id,
+        date_from: context.date,
+        slot_from: context.slot,
+        date_to: targetIso,
+        slot_to: context.slot,
+      });
+      router.refresh();
+      onClose();
+    });
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center px-4 bg-espresso/40 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div className="card p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+        <p className="eyebrow mb-1">Flytta dag</p>
+        <h2 className="font-display text-xl mb-1 leading-tight">
+          <em className="text-rust">{recipeTitle}</em>
+        </h2>
+        <p className="text-xs text-ink-soft mb-5">
+          Välj ny dag. Om dagen redan har en rätt så byter de plats.
+        </p>
+
+        <div className="space-y-1.5">
+          {days.map((d) => {
+            const iso = formatDateISO(d);
+            const isCurrent = iso === context.date;
+            return (
+              <button
+                key={iso}
+                onClick={() => moveTo(d)}
+                disabled={isPending || isCurrent}
+                className={cn(
+                  "w-full flex items-center justify-between px-4 py-3 border rounded-sm transition text-left",
+                  isCurrent
+                    ? "border-rust bg-cream-accent cursor-default"
+                    : "border-espresso/15 hover:border-espresso hover:bg-cream-accent/50"
+                )}
+              >
+                <div>
+                  <p className="font-medium capitalize">{weekdayName(d)}</p>
+                  <p className="text-xs text-ink-soft">
+                    {d.toLocaleDateString("sv-SE", { day: "numeric", month: "long" })}
+                  </p>
+                </div>
+                {isCurrent ? (
+                  <span className="text-xs text-rust uppercase tracking-[0.18em]">Här</span>
+                ) : (
+                  <ArrowRightLeft size={14} className="text-ink-soft" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex justify-end mt-5">
+          <button onClick={onClose} className="btn btn-ghost">
+            Avbryt
+          </button>
+        </div>
       </div>
     </div>
   );
