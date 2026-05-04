@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, X } from "lucide-react";
+import { useToast } from "./toast";
 
 export function QuickAddDialog({
   planId,
@@ -16,24 +17,24 @@ export function QuickAddDialog({
   onClose: () => void;
 }) {
   const [prompt, setPrompt] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const toast = useToast();
 
   function submit() {
     if (!prompt.trim()) return;
-    setError(null);
     startTransition(async () => {
       const res = await fetch("/api/menu/quick-add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan_id: planId, date, slot, prompt: prompt.trim() }),
       });
+      const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        setError(j.error || "Något gick fel");
+        toast.error(j.error || "Kunde inte skapa receptet");
         return;
       }
+      toast.success(`"${j.recipe?.title}" tillagd på ${date}`);
       onClose();
       router.refresh();
     });
@@ -60,7 +61,7 @@ export function QuickAddDialog({
         <p className="text-xs text-ink-soft mt-2">
           AI:n bygger ett recept och lägger ingredienserna på inköpslistan.
         </p>
-        {error && <p className="text-xs text-burgundy mt-2">{error}</p>}
+
         <div className="flex justify-end gap-2 mt-6">
           <button onClick={onClose} className="btn btn-ghost">Avbryt</button>
           <button onClick={submit} disabled={isPending || !prompt.trim()} className="btn btn-primary">

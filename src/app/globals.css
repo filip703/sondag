@@ -59,6 +59,10 @@
     outline-offset: 2px;
     border-radius: 2px;
   }
+  @keyframes slideIn {
+    from { transform: translateY(8px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
 }
 
 @layer components {

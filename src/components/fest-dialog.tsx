@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { X, Sparkles, PartyPopper } from "lucide-react";
+import { useToast } from "./toast";
 
 export function FestButton() {
   const [open, setOpen] = useState(false);
@@ -29,24 +30,23 @@ function FestDialog({ onClose }: { onClose: () => void }) {
   const [guests, setGuests] = useState(6);
   const [vibe, setVibe] = useState("OFYR-kväll, premium casual");
   const [notes, setNotes] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const toast = useToast();
 
   function generate() {
-    setError(null);
     startTransition(async () => {
       const res = await fetch("/api/menu/fest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ date, guest_count: guests, vibe, notes }),
       });
+      const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        setError(j.error ?? "AI-fel");
+        toast.error(j.error ?? "AI-fel");
         return;
       }
-      const j = await res.json();
+      toast.success("Festmenyn är klar");
       router.push(`/fest/${j.fest_id}`);
     });
   }
@@ -121,8 +121,6 @@ function FestDialog({ onClose }: { onClose: () => void }) {
             />
           </div>
         </div>
-
-        {error && <p className="text-sm text-burgundy mt-3">{error}</p>}
 
         <div className="flex justify-end gap-2 mt-6">
           <button onClick={onClose} className="btn btn-ghost">Avbryt</button>

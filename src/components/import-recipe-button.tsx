@@ -3,14 +3,15 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Link2, X } from "lucide-react";
+import { useToast } from "./toast";
 
 export function ImportRecipeButton() {
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const toast = useToast();
 
   function submit() {
     if (!url.trim().startsWith("http")) {
@@ -18,7 +19,6 @@ export function ImportRecipeButton() {
       return;
     }
     setError(null);
-    setSuccess(null);
     startTransition(async () => {
       const res = await fetch("/api/recipes/import", {
         method: "POST",
@@ -27,13 +27,13 @@ export function ImportRecipeButton() {
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(j.error ?? "Kunde inte importera");
+        toast.error(j.error ?? "Kunde inte importera");
         return;
       }
-      setSuccess(`Importerat: ${j.recipe?.title ?? "recept"}`);
+      toast.success(`Importerat: ${j.recipe?.title ?? "recept"}`);
       setUrl("");
       router.refresh();
-      setTimeout(() => setOpen(false), 1500);
+      setOpen(false);
     });
   }
 
@@ -72,7 +72,6 @@ export function ImportRecipeButton() {
               className="w-full bg-transparent border-b border-espresso/30 px-1 py-2 text-base focus:outline-none focus:border-espresso"
             />
             {error && <p className="text-xs text-burgundy mt-2">{error}</p>}
-            {success && <p className="text-xs text-forest mt-2">{success}</p>}
             <div className="flex justify-end gap-2 mt-6">
               <button onClick={() => setOpen(false)} className="btn btn-ghost">
                 Avbryt
