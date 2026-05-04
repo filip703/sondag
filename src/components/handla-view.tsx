@@ -2,15 +2,17 @@
 
 import { useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, RefreshCw, ShoppingCart, Store, Trash2, Home, PackageCheck } from "lucide-react";
+import { Check, Copy, RefreshCw, ShoppingCart, Store, Trash2, Home, PackageCheck, X, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { aisleOrder, aisleLabel } from "@/lib/store-layout";
 import {
   toggleCheckedAction,
   removeShoppingItemAction,
+  restoreShoppingItemAction,
   moveToHomeAction,
   finishShoppingAction,
 } from "@/app/actions/shopping-list";
+import { useToast } from "./toast";
 
 interface Item {
   id: string;
@@ -46,7 +48,9 @@ export function HandlaView({
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [confirmFinish, setConfirmFinish] = useState(false);
   const router = useRouter();
+  const toast = useToast();
 
   // Filtrera bort have_at_home, gruppera per gångordning
   const visible = useMemo(
@@ -82,8 +86,20 @@ export function HandlaView({
 
   function remove(item: Item) {
     startTransition(async () => {
-      await removeShoppingItemAction(item.id);
+      const snap = await removeShoppingItemAction(item.id);
       router.refresh();
+      if (snap) {
+        toast.show(`"${item.name}" borttaget`, {
+          variant: "info",
+          action: {
+            label: "Ångra",
+            onClick: async () => {
+              await restoreShoppingItemAction(snap);
+              router.refresh();
+            },
+          },
+        });
+      }
     });
   }
 
@@ -91,18 +107,16 @@ export function HandlaView({
     startTransition(async () => {
       await moveToHomeAction(item.id);
       router.refresh();
+      toast.success(`"${item.name}" flyttad hem`);
     });
   }
 
-  const [finishMsg, setFinishMsg] = useState<string | null>(null);
-  function finishShopping() {
-    if (done === 0) return;
-    if (!confirm(`Flytta ${done} avbockade varor till skafferi/kyl/frys och starta en ny lista?`)) return;
-    setFinishMsg(null);
+  function doFinishShopping() {
+    setConfirmFinish(false);
     startTransition(async () => {
       const res = await finishShoppingAction();
-      setFinishMsg(`${res.moved} varor flyttade hem`);
       router.refresh();
+      toast.success(`${res.moved} varor flyttade hem — ny lista skapad`);
     });
   }
 
@@ -187,7 +201,7 @@ export function HandlaView({
           </button>
           {done > 0 && (
             <button
-              onClick={finishShopping}
+              onClick={() => setConfirmFinish(true)}
               disabled={isPending}
               className="btn btn-primary text-xs flex-1 justify-center"
               title="Flytta alla avbockade varor till hemma och starta ny lista"
@@ -198,13 +212,45 @@ export function HandlaView({
           )}
         </div>
         {syncMsg && <p className="text-xs text-ink-soft mt-2">{syncMsg}</p>}
-        {finishMsg && <p className="text-xs text-forest mt-2">{finishMsg}</p>}
         {lastSynced && (
           <p className="text-[10px] text-ink-soft mt-1">
             Senast synkad {new Date(lastSynced).toLocaleString("sv-SE", { dateStyle: "short", timeStyle: "short" })}
           </p>
         )}
       </div>
+
+      {/* Konfirmation: avsluta handlingen */}
+      {confirmFinish && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-espresso/40 backdrop-blur-sm"
+          onClick={() => setConfirmFinish(false)}
+        >
+          <div className="card p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <PackageCheck size={20} className="text-rust" />
+                <p className="eyebrow">Avsluta handlingen</p>
+              </div>
+              <button onClick={() => setConfirmFinish(false)} className="icon-btn">
+                <X size={16} />
+              </button>
+            </div>
+            <h2 className="font-display text-2xl mb-2">
+              Flytta <em className="text-rust">{done}</em> varor hem?
+            </h2>
+            <p className="text-sm text-ink-soft">
+              Avbockade varor hamnar i skafferi/kyl/frys auto-klassade. En ny tom lista skapas för nästa vecka.
+            </p>
+            <div className="flex justify-end gap-2 mt-6">
+              <button onClick={() => setConfirmFinish(false)} className="btn btn-ghost">Avbryt</button>
+              <button onClick={doFinishShopping} disabled={isPending} className="btn btn-primary">
+                <PackageCheck size={14} />
+                Ja, flytta hem
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Listan */}
       <div className="px-6 py-6 md:p-0 md:mt-8">

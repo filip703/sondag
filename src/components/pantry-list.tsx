@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import {
   addPantryItemAction,
   removePantryItemAction,
+  restorePantryItemAction,
   movePantryItemAction,
 } from "@/app/actions/pantry";
 import { Trash2, Plus, Refrigerator, Snowflake, Package } from "lucide-react";
+import { useToast } from "./toast";
 import { cn } from "@/lib/utils";
 
 type Storage = "skafferi" | "kyl" | "frys";
@@ -42,6 +44,7 @@ export function PantryList({
   const [category, setCategory] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const toast = useToast();
 
   const tabbed = useMemo(() => {
     const out: Record<Storage, PantryItem[]> = { skafferi: [], kyl: [], frys: [] };
@@ -73,10 +76,22 @@ export function PantryList({
     });
   }
 
-  function remove(id: string) {
+  function remove(id: string, name: string) {
     startTransition(async () => {
-      await removePantryItemAction(id);
+      const snap = await removePantryItemAction(id);
       router.refresh();
+      if (snap) {
+        toast.show(`"${name}" borttaget`, {
+          variant: "info",
+          action: {
+            label: "Ångra",
+            onClick: async () => {
+              await restorePantryItemAction(snap);
+              router.refresh();
+            },
+          },
+        });
+      }
     });
   }
 
@@ -206,7 +221,7 @@ export function PantryList({
                       )
                     )}
                     <button
-                      onClick={() => remove(it.id)}
+                      onClick={() => remove(it.id, it.name)}
                       title="Ta bort"
                       className="icon-btn icon-btn-danger"
                     >

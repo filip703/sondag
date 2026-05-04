@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plane, X, Plus } from "lucide-react";
 import { addTripAction, removeTripAction } from "@/app/actions/trips";
+import { useToast } from "./toast";
 
 interface Trip {
   id: string;
@@ -19,7 +20,16 @@ function fmt(iso: string): string {
 
 export function TripBar({ trips }: { trips: Trip[] }) {
   const router = useRouter();
+  const toast = useToast();
   const [show, setShow] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState<Trip | null>(null);
+
+  async function doRemove(trip: Trip) {
+    setConfirmRemove(null);
+    await removeTripAction(trip.id);
+    router.refresh();
+    toast.success(`"${trip.title}" borttagen`);
+  }
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
@@ -36,10 +46,7 @@ export function TripBar({ trips }: { trips: Trip[] }) {
                 {fmt(t.start_date)} → {fmt(t.end_date)}
               </span>
               <button
-                onClick={async () => {
-                  await removeTripAction(t.id);
-                  router.refresh();
-                }}
+                onClick={() => setConfirmRemove(t)}
                 className="icon-btn icon-btn-danger -my-2 -mr-1"
                 style={{ minWidth: 32, minHeight: 32 }}
                 aria-label="Ta bort resa"
@@ -49,6 +56,28 @@ export function TripBar({ trips }: { trips: Trip[] }) {
             </li>
           ))}
         </ul>
+      )}
+      {confirmRemove && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-espresso/40 backdrop-blur-sm"
+          onClick={() => setConfirmRemove(null)}
+        >
+          <div className="card p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <p className="eyebrow mb-2">Ta bort resa</p>
+            <h2 className="font-display text-xl mb-2">
+              Ta bort <em className="text-rust">{confirmRemove.title}</em>?
+            </h2>
+            <p className="text-sm text-ink-soft">
+              {fmt(confirmRemove.start_date)} → {fmt(confirmRemove.end_date)}. AI:n kommer åter planera mat dessa dagar.
+            </p>
+            <div className="flex justify-end gap-2 mt-6">
+              <button onClick={() => setConfirmRemove(null)} className="btn btn-ghost">Avbryt</button>
+              <button onClick={() => doRemove(confirmRemove)} className="btn btn-primary">
+                Ta bort
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       <button onClick={() => setShow(true)} className="btn btn-ghost text-xs">
         <Plane size={12} />

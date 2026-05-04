@@ -123,11 +123,27 @@ export async function addShoppingItemAction(args: {
   revalidatePath("/inkop");
 }
 
-export async function removeShoppingItemAction(itemId: string) {
+export interface ShoppingItemSnapshot {
+  shopping_list_id: string;
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  category: string | null;
+  ica_ean: string | null;
+  ica_article_id: string | null;
+  have_at_home: boolean;
+  checked: boolean;
+  remember_have_at_home: boolean;
+  recipe_id: string | null;
+  notes: string | null;
+  order_index: number;
+}
+
+export async function removeShoppingItemAction(itemId: string): Promise<ShoppingItemSnapshot | null> {
   const supabase = await createClient();
   const { data: existing } = await supabase
     .from("sondag_shopping_list_items")
-    .select("name")
+    .select("*")
     .eq("id", itemId)
     .maybeSingle();
   await supabase.from("sondag_shopping_list_items").delete().eq("id", itemId);
@@ -137,6 +153,29 @@ export async function removeShoppingItemAction(itemId: string) {
     object_id: itemId,
     object_name: existing?.name,
   });
+  revalidatePath("/inkop");
+  revalidatePath("/handla");
+  if (!existing) return null;
+  return {
+    shopping_list_id: existing.shopping_list_id,
+    name: existing.name,
+    quantity: existing.quantity,
+    unit: existing.unit,
+    category: existing.category,
+    ica_ean: existing.ica_ean,
+    ica_article_id: existing.ica_article_id,
+    have_at_home: existing.have_at_home,
+    checked: existing.checked,
+    remember_have_at_home: existing.remember_have_at_home,
+    recipe_id: existing.recipe_id,
+    notes: existing.notes,
+    order_index: existing.order_index,
+  };
+}
+
+export async function restoreShoppingItemAction(snapshot: ShoppingItemSnapshot) {
+  const supabase = await createClient();
+  await supabase.from("sondag_shopping_list_items").insert(snapshot);
   revalidatePath("/inkop");
   revalidatePath("/handla");
 }
