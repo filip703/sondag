@@ -52,7 +52,12 @@ export default async function InstallningarPage() {
       </div>
       <div id="ica">
         <p className="eyebrow mb-3">Integrationer</p>
-        <h1 className="text-4xl mb-8">ICA</h1>
+        <h1 className="text-4xl mb-3">ICA</h1>
+        <div className="card p-4 mb-6 bg-cream-accent border-rust/30">
+          <p className="text-xs text-ink-soft leading-relaxed">
+            <strong className="text-rust">Pågående arbete.</strong> ICA migrerade sin backend efter 2024 och vår första integration mot <code>handla.api.ica.se</code> fungerar inte längre. Vi bygger om mot deras nya OAuth-flöde via <code>ims.icagruppen.se</code>. Tills dess: använd <strong>Kopiera</strong>-knappen på <a href="/handla" className="text-rust underline">Handla-vyn</a> för att klistra in listan i ICA Handla-appen manuellt.
+          </p>
+        </div>
         <IcaConnect householdId={household.household_id} initial={ica} />
       </div>
     </div>

@@ -119,14 +119,17 @@ export function RecipeDialog({
         className="bg-cream-light w-full md:max-w-2xl md:rounded-sm md:border md:border-espresso/15 max-h-[90dvh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Hero-bild — visas bara om bild finns. Inget skelett som blockerar UI:t. */}
+        {/* Hero-bild — fixed aspect ratio så modalen inte hoppar när bilden laddas */}
         {imageUrl && !imageError && (
-          <div className="relative w-full aspect-[4/3] overflow-hidden bg-cream-accent">
+          <div className="relative w-full aspect-[4/3] overflow-hidden bg-gradient-to-br from-cream-accent to-cream-light">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <Sparkles size={20} className="text-rust/40 animate-pulse" />
+            </div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imageUrl}
               alt={recipe.title}
-              className="w-full h-full object-cover"
+              className="relative w-full h-full object-cover"
               onError={() => setImageError(true)}
               loading="lazy"
             />
@@ -134,10 +137,11 @@ export function RecipeDialog({
             <button
               onClick={regenerate}
               disabled={isPending}
-              className="absolute top-3 right-3 bg-cream-light/80 backdrop-blur-sm text-espresso hover:bg-cream-light p-2 rounded-sm transition"
+              className="absolute top-3 right-3 bg-cream-light/80 backdrop-blur-sm text-espresso hover:bg-cream-light icon-btn rounded-sm"
               title="Generera ny bild"
+              style={{ minWidth: 40, minHeight: 40 }}
             >
-              <RefreshCw size={14} className={isPending ? "animate-spin" : ""} />
+              <RefreshCw size={16} className={isPending ? "animate-spin" : ""} />
             </button>
           </div>
         )}
