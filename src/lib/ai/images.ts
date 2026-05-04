@@ -91,3 +91,31 @@ export function drinkImage(d: DrinkImageInput, opts: ImageOptions = {}): Generat
   }
   return { url: null, prompt, seed };
 }
+
+/**
+ * Pre-warm: trigga Pollinations att generera bilden NU så att den
+ * är cachad på deras CDN när browsern senare hämtar den.
+ *
+ * Returnerar true om bilden är klar, false om det failade
+ * (då vill vi sätta image_url=null så vi slipper visa broken-image).
+ */
+export async function prewarmImageUrl(url: string | null, timeoutMs = 25000): Promise<boolean> {
+  if (!url) return false;
+  try {
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch(url, {
+      method: "GET",
+      signal: controller.signal,
+      headers: { "User-Agent": "Sondag/0.1 server-prewarm" },
+      cache: "no-store",
+    });
+    clearTimeout(t);
+    if (!res.ok) return false;
+    // Konsumera body så connection släpps korrekt
+    await res.arrayBuffer();
+    return true;
+  } catch {
+    return false;
+  }
+}

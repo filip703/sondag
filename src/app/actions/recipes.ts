@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { logActivity } from "@/lib/activity";
 import { getActiveActor } from "@/lib/auth-pin";
-import { recipeImage } from "@/lib/ai/images";
+import { recipeImage, prewarmImageUrl } from "@/lib/ai/images";
 
 export async function rateRecipeAction(recipeId: string, rating: number) {
   if (rating < 1 || rating > 5) throw new Error("Betyg måste vara 1-5");
@@ -63,16 +63,30 @@ export async function ensureRecipeImageAction(recipeId: string): Promise<string 
     tags: r.tags ?? [],
   });
 
+  // Spara prompt + seed direkt
   await supabase
     .from("sondag_recipes")
     .update({
-      image_url: img.url,
       image_prompt: img.prompt,
       image_seed: img.seed,
     })
     .eq("id", recipeId);
 
-  return img.url;
+  // Pre-warm — vänta tills Pollinations har genererat bilden (max 25s)
+  // Då har vi en cachad URL när browsern hämtar
+  if (img.url) {
+    const ok = await prewarmImageUrl(img.url, 25000);
+    if (ok) {
+      await supabase
+        .from("sondag_recipes")
+        .update({ image_url: img.url })
+        .eq("id", recipeId);
+      return img.url;
+    }
+  }
+
+  // Pre-warm failade — lämna image_url null så vi inte visar broken-image
+  return null;
 }
 
 /**
@@ -91,10 +105,22 @@ export async function regenerateRecipeImageAction(recipeId: string): Promise<str
     { title: r.title, description: r.description, cuisine: r.cuisine, tags: r.tags ?? [] },
     { seed: Math.floor(Math.random() * 1_000_000) }
   );
+
   await supabase
     .from("sondag_recipes")
-    .update({ image_url: img.url, image_prompt: img.prompt, image_seed: img.seed })
+    .update({ image_prompt: img.prompt, image_seed: img.seed })
     .eq("id", recipeId);
+
+  // Pre-warm
+  if (img.url) {
+    const ok = await prewarmImageUrl(img.url, 25000);
+    if (ok) {
+      await supabase
+        .from("sondag_recipes")
+        .update({ image_url: img.url })
+        .eq("id", recipeId);
+    }
+  }
 
   await logActivity({
     verb: "edited_member",
