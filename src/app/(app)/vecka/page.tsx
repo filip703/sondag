@@ -30,22 +30,28 @@ export default async function VeckaPage({
 
   const supabase = await createClient();
 
-  // Hämta eller skapa veckomeny
-  let { data: plan } = await supabase
+  // Self-healing: säkerställ att aktuell vecka + 4 framåt alltid finns.
+  // Idempotent — om de redan existerar gör vi inget.
+  const upcoming: string[] = [];
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i * 7);
+    upcoming.push(formatDateISO(d));
+  }
+  await supabase
+    .from("sondag_meal_plans")
+    .upsert(
+      upcoming.map((ws) => ({ household_id: household.household_id, week_start: ws })),
+      { onConflict: "household_id,week_start", ignoreDuplicates: true }
+    );
+
+  // Hämta veckans plan (skapad ovan om den inte fanns)
+  const { data: plan } = await supabase
     .from("sondag_meal_plans")
     .select("*")
     .eq("household_id", household.household_id)
     .eq("week_start", weekStartIso)
     .maybeSingle();
-
-  if (!plan) {
-    const { data: newPlan } = await supabase
-      .from("sondag_meal_plans")
-      .insert({ household_id: household.household_id, week_start: weekStartIso })
-      .select()
-      .single();
-    plan = newPlan;
-  }
 
   // Hämta entries och recept parallellt
   const { data: entries } = await supabase
