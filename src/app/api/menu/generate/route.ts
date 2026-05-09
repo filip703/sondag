@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { generateWeekMenu } from "@/lib/ai/menu";
-import { recipeImage, prewarmImageUrl } from "@/lib/ai/images";
+import { recipeImage } from "@/lib/ai/images";
 import { normalizeName } from "@/lib/utils";
 import { logActivity } from "@/lib/activity";
 import Anthropic from "@anthropic-ai/sdk";
@@ -296,26 +296,10 @@ export async function POST(req: Request) {
   // Generera inköpslista från receptens ingredienser
   await rebuildShoppingList(supabase, plan.household_id, plan_id);
 
-  // Pre-warm alla nyligen-skapade recept-bilder parallellt så Pollinations
-  // hinner generera innan browsern frågar. Max 22s totalt.
-  const { data: weekRecipes } = await supabase
-    .from("sondag_recipes")
-    .select("id, image_url")
-    .eq("household_id", plan.household_id)
-    .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString())
-    .not("image_url", "is", null);
-
-  await Promise.race([
-    Promise.all(
-      (weekRecipes ?? []).map(async (r) => {
-        const ok = await prewarmImageUrl(r.image_url, 20000);
-        if (!ok) {
-          await supabase.from("sondag_recipes").update({ image_url: null }).eq("id", r.id);
-        }
-      })
-    ),
-    new Promise((resolve) => setTimeout(resolve, 22000)),
-  ]);
+  // Pre-warm bilder i BAKGRUNDEN — vi släpper response direkt så
+  // Vercels function-timeout inte slår oss. Bilder lazy-laddas via
+  // ensureRecipeImageAction när användaren öppnar recept-dialogen.
+  // (Tidigare väntade vi 22s här vilket pushade total tid över 60s)
 
   // Para fre/lör med drinkar (parallellt) — best-effort, blockerar inte
   const drinkDays = week.entries.filter((e) => {
