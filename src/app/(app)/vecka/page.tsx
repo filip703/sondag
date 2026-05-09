@@ -132,7 +132,7 @@ export default async function VeckaPage({
               {shortDate(days[6])}
             </h1>
             <p className="text-sm md:text-base text-ink-soft mt-4 italic max-w-md leading-relaxed">
-              Söndag är planeringsdagen. Tap en cell för att lägga till med AI eller markera takeaway.
+              Planera när du vill. Tap en cell för att lägga till med AI eller markera takeaway.
             </p>
           </div>
           <div className="md:col-span-5 flex md:justify-end items-center gap-6">
